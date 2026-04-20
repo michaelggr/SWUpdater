@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 日间模式主题 -->
+<resources>
+    <style name="Theme.SWUpdater" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_variant</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSecondaryVariant">@color/secondary_variant</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowBackground">@color/background</item>
+    </style>
+
+    <style name="Widget.SWUpdater.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="cardCornerRadius">@dimen/corner_md</item>
+        <item name="cardElevation">@dimen/card_elevation</item>
+        <item name="contentPadding">@dimen/spacing_md</item>
+    </style>
+
+    <style name="Widget.SWUpdater.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/secondary</item>
+        <item name="android:textColor">@color/on_secondary</item>
+        <item name="cornerRadius">@dimen/corner_full</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <style name="Widget.SWUpdater.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/secondary</item>
+        <item name="android:textColor">@color/secondary</item>
+        <item name="cornerRadius">@dimen/corner_full</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <style name="Widget.SWUpdater.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/secondary</item>
+        <item name="cornerRadius">@dimen/corner_full</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.SWUpdater.ProgressBar" parent="Widget.AppCompat.ProgressBar.Horizontal">
+        <item name="android:progressBackgroundTint">@color/progress_background</item>
+        <item name="android:progressTint">@color/progress_foreground</item>
+        <item name="android:minHeight">@dimen/progress_height</item>
+        <item name="android:maxHeight">@dimen/progress_height</item>
+    </style>
+</resources>

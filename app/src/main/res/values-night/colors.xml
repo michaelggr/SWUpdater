@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 夜间模式颜色（深色，和默认一致） -->
+<resources>
+    <color name="primary">#FF4A3F9F</color>
+    <color name="primary_variant">#FF382D80</color>
+    <color name="on_primary">#FFFFFFFF</color>
+
+    <color name="secondary">#FF7C4DFF</color>
+    <color name="secondary_variant">#FF6234DD</color>
+    <color name="on_secondary">#FFFFFFFF</color>
+
+    <color name="accent">#FF00E5FF</color>
+
+    <color name="background">#FF0D0B1A</color>
+    <color name="surface">#FF1A1730</color>
+    <color name="surface_variant">#FF252244</color>
+    <color name="on_background">#FFE8E6F0</color>
+    <color name="on_surface">#FFE8E6F0</color>
+
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFFC107</color>
+    <color name="error">#FFEF5350</color>
+    <color name="info">#FF42A5F5</color>
+
+    <color name="text_primary">#FFE8E6F0</color>
+    <color name="text_secondary">#FF9E9BB0</color>
+    <color name="text_hint">#FF6B6880</color>
+
+    <color name="divider">#FF2D2A45</color>
+    <color name="card_background">#FF1E1B35</color>
+
+    <color name="progress_background">#FF2D2A45</color>
+    <color name="progress_foreground">#FF7C4DFF</color>
+
+    <!-- 夜间模式壁纸遮罩（深色半透明） -->
+    <color name="wallpaper_overlay">#B30D0B1A</color>
+</resources>

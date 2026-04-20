@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <!-- 壁纸背景层 -->
+    <ImageView
+        android:id="@+id/iv_wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:contentDescription="@string/btn_random_wallpaper" />
+
+    <!-- 半透明遮罩，让壁纸透出来同时保证文字可读 -->
+    <View
+        android:id="@+id/view_wallpaper_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/wallpaper_overlay"
+        android:visibility="gone" />
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name"
+            app:titleTextColor="@color/text_primary"
+            app:menu="@menu/main_menu" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md"
+                android:paddingBottom="80dp">
+
+                <!-- 游戏信息卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_game_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.SWUpdater.CardView"
+                    android:layout_marginBottom="@dimen/spacing_md">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/spacing_md">
+
+                        <!-- 游戏图标 + 名称 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="@dimen/spacing_md">
+
+                            <ImageView
+                                android:id="@+id/iv_game_icon"
+                                android:layout_width="@dimen/icon_xxl"
+                                android:layout_height="@dimen/icon_xxl"
+                                android:src="@mipmap/ic_launcher"
+                                android:contentDescription="@string/app_name" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="@dimen/spacing_md"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="魔灵召唤：天空之役"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="@dimen/text_title"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tv_game_package"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="@dimen/text_caption"
+                                    tools:text="com.com2us.smon.normal.freefull.google.kr.android.common" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <!-- 版本信息 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:baselineAligned="false">
+
+                            <!-- 当前版本 -->
+                            <LinearLayout
+                                android:id="@+id/layout_current_version"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:padding="@dimen/spacing_sm"
+                                android:background="@drawable/bg_version_card"
+                                android:layout_marginEnd="@dimen/spacing_sm">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/current_version_label"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="@dimen/text_caption" />
+
+                                <TextView
+                                    android:id="@+id/tv_current_version"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="@dimen/text_headline"
+                                    android:textStyle="bold"
+                                    tools:text="9.1.7" />
+
+                            </LinearLayout>
+
+                            <!-- 最新版本 -->
+                            <LinearLayout
+                                android:id="@+id/layout_latest_version"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:padding="@dimen/spacing_sm"
+                                android:background="@drawable/bg_version_card">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/latest_version_label"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="@dimen/text_caption" />
+
+                                <TextView
+                                    android:id="@+id/tv_latest_version"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/secondary"
+                                    android:textSize="@dimen/text_headline"
+                                    android:textStyle="bold"
+                                    tools:text="9.1.9" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <!-- 状态指示 -->
+                        <LinearLayout
+                            android:id="@+id/layout_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="@dimen/spacing_md"
+                            android:padding="@dimen/spacing_sm">
+
+                            <View
+                                android:id="@+id/view_status_dot"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="@drawable/bg_status_dot"
+                                android:backgroundTint="@color/success" />
+
+                            <TextView
+                                android:id="@+id/tv_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/spacing_sm"
+                                android:text="@string/status_up_to_date"
+                                android:textColor="@color/success"
+                                android:textSize="@dimen/text_body" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 下载进度卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_download"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.SWUpdater.CardView"
+                    android:layout_marginBottom="@dimen/spacing_md"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/spacing_md">
+
+                        <TextView
+                            android:id="@+id/tv_download_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/download_progress"
+                            android:textColor="@color/text_primary"
+                            android:textSize="@dimen/text_subtitle"
+                            android:textStyle="bold" />
+
+                        <!-- 进度条 -->
+                        <ProgressBar
+                            android:id="@+id/progress_download"
+                            style="@style/Widget.SWUpdater.ProgressBar"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            android:layout_marginBottom="@dimen/spacing_sm"
+                            android:max="100"
+                            android:progress="0" />
+
+                        <!-- 下载详情 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tv_download_size"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="@dimen/text_caption"
+                                tools:text="45.2 MB / 120.5 MB" />
+
+                            <TextView
+                                android:id="@+id/tv_download_speed"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="@dimen/text_caption"
+                                tools:text="2.5 MB/s" />
+
+                        </LinearLayout>
+
+                        <!-- 完整性校验状态 -->
+                        <TextView
+                            android:id="@+id/tv_verify_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            android:textColor="@color/info"
+                            android:textSize="@dimen/text_caption"
+                            android:visibility="gone"
+                            tools:text="@string/verifying_integrity" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 操作按钮 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="@dimen/spacing_md">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_check_update"
+                        style="@style/Widget.SWUpdater.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_check_update"
+                        app:icon="@drawable/ic_refresh"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_download"
+                        style="@style/Widget.SWUpdater.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/btn_download"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_download"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_store"
+                        style="@style/Widget.SWUpdater.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/dialog_btn_open_store"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_play"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_stop_download"
+                        style="@style/Widget.SWUpdater.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/btn_stop_download"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_stop"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_install"
+                        style="@style/Widget.SWUpdater.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/btn_install"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_install"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_game"
+                        style="@style/Widget.SWUpdater.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:text="@string/btn_open_game"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_play"
+                        app:iconGravity="textStart" />
+
+                </LinearLayout>
+
+                <!-- 更新日志卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_changelog"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.SWUpdater.CardView"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/spacing_md">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/changelog_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="@dimen/text_subtitle"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="@dimen/spacing_sm" />
+
+                        <TextView
+                            android:id="@+id/tv_changelog"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="@dimen/text_body"
+                            tools:text="• 修复已知问题\n• 新增魔灵\n• 性能优化" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- ========== 底部区域 ========== -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:gravity="center_horizontal">
+
+                    <!-- 底部按钮行 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <!-- 魔灵工具箱按钮 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_toolbox"
+                            style="@style/Widget.SWUpdater.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="@dimen/spacing_sm"
+                            android:text="@string/btn_toolbox"
+                            android:textSize="@dimen/text_caption"
+                            app:icon="@drawable/ic_toolbox"
+                            app:iconGravity="textStart"
+                            app:iconSize="18dp"
+                            android:minHeight="40dp" />
+
+                        <!-- 反馈留言按钮 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_feedback"
+                            style="@style/Widget.SWUpdater.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:text="@string/btn_feedback"
+                            android:textSize="@dimen/text_caption"
+                            app:icon="@drawable/ic_feedback"
+                            app:iconGravity="textStart"
+                            app:iconSize="18dp"
+                            android:minHeight="40dp" />
+
+                    </LinearLayout>
+
+                    <!-- Design by 文字 -->
+                    <TextView
+                        android:id="@+id/tv_design_by"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:layout_marginBottom="@dimen/spacing_md"
+                        android:text="@string/design_by_text"
+                        android:textColor="@color/text_hint"
+                        android:textSize="@dimen/text_caption"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"
+                        android:padding="@dimen/spacing_sm" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- ========== 右下角壁纸浮动按钮 ========== -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/spacing_md"
+        android:layout_marginBottom="@dimen/spacing_md">
+
+        <!-- 打开缓存目录按钮 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_open_folder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:src="@drawable/ic_folder_open"
+            android:contentDescription="@string/btn_open_folder"
+            app:fabSize="mini"
+            app:backgroundTint="@color/surface"
+            app:tint="@color/secondary" />
+
+        <!-- 壁纸下载按钮 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_download_wallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:src="@drawable/ic_wallpaper_download"
+            android:contentDescription="@string/btn_download_wallpaper"
+            app:fabSize="mini"
+            app:backgroundTint="@color/surface"
+            app:tint="@color/secondary" />
+
+        <!-- 随机壁纸按钮（刷新图标） -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_random_wallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_refresh"
+            android:contentDescription="@string/btn_random_wallpaper"
+            app:fabSize="normal"
+            app:backgroundTint="@color/secondary"
+            app:tint="@color/on_secondary" />
+
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
