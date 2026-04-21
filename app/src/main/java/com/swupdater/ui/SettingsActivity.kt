@@ -357,6 +357,20 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
+            // 测试自动下载
+            Preference(context).apply {
+                key = "pref_test_auto_download"
+                title = "测试自动下载"
+                summary = "立即触发一次后台版本检查，模拟自动下载流程。需开启「自动下载」且在WiFi环境下才会自动下载"
+                setOnPreferenceClickListener {
+                    com.swupdater.service.VersionCheckWorker.scheduleOneTimeCheck(requireContext())
+                    Toast.makeText(requireContext(), "已触发后台版本检查，请查看通知栏", Toast.LENGTH_LONG).show()
+                    AppLog.i("Settings", "手动触发自动下载测试")
+                    true
+                }
+                debugCategory.addPreference(this)
+            }
+
             // 查看日志
             Preference(context).apply {
                 key = "pref_view_log"
