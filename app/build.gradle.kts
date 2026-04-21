@@ -111,7 +111,4 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    // BlurView — 毛玻璃模糊效果
-    implementation("com.github.Dimezis:BlurView:version-2.0.6")
 }

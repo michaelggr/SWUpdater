@@ -7,7 +7,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SeekBarPreference
 import androidx.preference.SwitchPreferenceCompat
 import com.swupdater.R
 import com.swupdater.network.VersionCheckService
@@ -78,24 +77,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     val enabled = newValue as Boolean
                     WallpaperManager.setAutoChangeEnabled(requireContext(), enabled)
                     AppLog.i("Settings", "自动更换壁纸已${if (enabled) "开启" else "关闭"}")
-                    true
-                }
-                wallpaperCategory.addPreference(this)
-            }
-
-            // 内容透明度（控制卡片、工具栏等所有UI元素的透明度）
-            SeekBarPreference(context).apply {
-                key = "pref_wallpaper_overlay_alpha"
-                title = "内容透明度"
-                summary = "数值越小壁纸越清晰，数值越大内容越清晰。控制所有界面的透明度"
-                min = 20
-                max = 100
-                setDefaultValue(70)
-                seekBarIncrement = 5
-                showSeekBarValue = true
-                setOnPreferenceChangeListener { _, newValue ->
-                    val alpha = newValue as Int
-                    WallpaperManager.setOverlayAlpha(requireContext(), alpha)
                     true
                 }
                 wallpaperCategory.addPreference(this)
