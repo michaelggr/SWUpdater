@@ -99,6 +99,11 @@ class MainActivity : AppCompatActivity() {
             downloadCurrentWallpaper()
         }
 
+        // 应用到手机壁纸按钮（右下角小FAB）
+        binding.fabApplyWallpaper.setOnClickListener {
+            applyWallpaperToSystem()
+        }
+
         // 打开缓存目录按钮（右下角小FAB）
         binding.fabOpenFolder.setOnClickListener {
             openWallpaperFolder()
@@ -246,6 +251,69 @@ class MainActivity : AppCompatActivity() {
     private fun resetCardBackground(card: com.google.android.material.card.MaterialCardView) {
         val defaultColor = ContextCompat.getColor(this, R.color.card_background)
         card.setCardBackgroundColor(defaultColor)
+    }
+
+    /**
+     * 将当前背景壁纸应用到手机系统壁纸
+     * 使用 WallpaperManager.setBitmap() 设置系统壁纸
+     */
+    private fun applyWallpaperToSystem() {
+        // 检查当前是否有壁纸
+        val drawable = binding.ivWallpaper.drawable
+        if (drawable == null || binding.ivWallpaper.visibility != View.VISIBLE) {
+            Snackbar.make(
+                binding.root,
+                getString(R.string.wallpaper_apply_no_wallpaper),
+                Snackbar.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val wallpaperFile = WallpaperManager.getCurrentWallpaperFile(this@MainActivity)
+                if (wallpaperFile == null || !wallpaperFile.exists()) {
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.wallpaper_apply_no_wallpaper),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+
+                val result = withContext(Dispatchers.IO) {
+                    val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath)
+                    if (bitmap == null) return@withContext false
+
+                    val wm = android.app.WallpaperManager.getInstance(this@MainActivity)
+                    wm.setBitmap(bitmap)
+                    bitmap.recycle()
+                    true
+                }
+
+                if (result) {
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.wallpaper_apply_success),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                    AppLog.i("MainActivity", "壁纸已应用到手机系统壁纸")
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.wallpaper_apply_failed),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Snackbar.make(
+                    binding.root,
+                    "${getString(R.string.wallpaper_apply_failed)}: ${e.message}",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+                AppLog.e("MainActivity", "应用壁纸失败: ${e.message}")
+            }
+        }
     }
 
     /**

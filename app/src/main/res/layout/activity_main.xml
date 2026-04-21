@@ -500,6 +500,18 @@
             app:backgroundTint="@color/surface"
             app:tint="@color/secondary" />
 
+        <!-- 应用到手机壁纸按钮 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_apply_wallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:src="@drawable/ic_wallpaper_apply"
+            android:contentDescription="@string/btn_apply_wallpaper"
+            app:fabSize="mini"
+            app:backgroundTint="@color/surface"
+            app:tint="@color/secondary" />
+
         <!-- 随机壁纸按钮（刷新图标） -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_random_wallpaper"

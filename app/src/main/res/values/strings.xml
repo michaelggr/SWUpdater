@@ -100,6 +100,10 @@
     <string name="btn_random_wallpaper">随机壁纸</string>
     <string name="btn_download_wallpaper">下载壁纸</string>
     <string name="btn_open_folder">打开缓存目录</string>
+    <string name="btn_apply_wallpaper">应用到手机壁纸</string>
+    <string name="wallpaper_apply_success">壁纸已应用到手机</string>
+    <string name="wallpaper_apply_failed">应用壁纸失败</string>
+    <string name="wallpaper_apply_no_wallpaper">当前没有壁纸可应用</string>
     <string name="wallpaper_changing">正在更换壁纸…</string>
     <string name="wallpaper_changed">壁纸已更换</string>
     <string name="wallpaper_change_failed">壁纸更换失败</string>
