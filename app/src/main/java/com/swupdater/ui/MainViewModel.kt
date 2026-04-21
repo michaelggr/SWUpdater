@@ -281,7 +281,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             val latest = _latestVersion.value
-            var isVerified = false
+            var isVerified: Boolean
             try {
                 isVerified = true
                 if (latest != null && latest.fileSize > 0) {
@@ -326,6 +326,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (result.success) {
                     AppLog.i(TAG, "Root 安装成功")
                     refreshInstalledInfo()
+                    // 安装完成，删除安装包
+                    val apkFile = File(filePath)
+                    if (apkFile.exists()) apkFile.delete()
+                    AppLog.i(TAG, "安装包已删除")
+                    // 通知栏显示安装完成
+                    com.swupdater.service.DownloadNotificationHelper.showInstallCompleteNotification(context)
                 } else {
                     AppLog.e(TAG, "Root 安装失败: ${result.message}")
                     // Root 安装失败，回退到系统安装器

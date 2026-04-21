@@ -109,6 +109,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- 通知栏安装按钮广播 -->
+        <receiver
+            android:name=".receiver.NotificationInstallReceiver"
+            android:exported="false" />
+
         <!-- 开机自启广播 -->
         <receiver
             android:name=".receiver.BootReceiver"

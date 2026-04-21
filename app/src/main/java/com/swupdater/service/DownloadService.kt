@@ -139,6 +139,10 @@ class DownloadService : Service() {
                                 if (result.success) {
                                     AppLog.i("DownloadService", "Root 自动安装成功")
                                     DownloadNotificationHelper.showInstallCompleteNotification(this@DownloadService)
+                                    // 安装完成，删除安装包
+                                    val apkFile = java.io.File(progress.filePath)
+                                    if (apkFile.exists()) apkFile.delete()
+                                    AppLog.i("DownloadService", "安装包已删除")
                                 } else {
                                     AppLog.e("DownloadService", "Root 自动安装失败: ${result.message}")
                                     DownloadNotificationHelper.showInstallFailedNotification(this@DownloadService, result.message)

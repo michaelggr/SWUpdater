@@ -31,6 +31,7 @@
     <string name="download_notification_channel">下载通知</string>
     <string name="download_notification_title">魔灵召唤更新下载</string>
     <string name="download_complete_notification">下载完成，点击安装</string>
+    <string name="install_complete_notification">安装完成</string>
     <string name="verifying_integrity">正在校验完整性…</string>
     <string name="integrity_pass">完整性校验通过</string>
     <string name="integrity_fail">完整性校验失败，请重新下载</string>

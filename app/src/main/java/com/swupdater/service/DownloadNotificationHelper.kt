@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.swupdater.R
 import com.swupdater.model.DownloadProgress
 import com.swupdater.model.DownloadState
+import com.swupdater.receiver.NotificationInstallReceiver
 import com.swupdater.ui.MainActivity
 import com.swupdater.util.FileUtil
 
@@ -18,11 +19,17 @@ import com.swupdater.util.FileUtil
  * 下载通知助手
  *
  * 管理下载进度通知栏显示，供 ViewModel 和 DownloadService 共用
+ * - 下载完成时显示"安装"按钮
+ * - 安装完成时显示"安装完成"通知
+ * - 安装失败时显示"安装失败"通知
  */
 object DownloadNotificationHelper {
 
     private const val CHANNEL_ID = "download_channel"
     private const val NOTIFICATION_ID = 1001
+
+    // 安装完成通知使用独立 ID，避免被下载进度通知覆盖
+    private const val INSTALL_COMPLETE_NOTIFICATION_ID = 1002
 
     /**
      * 确保通知渠道已创建
@@ -82,17 +89,6 @@ object DownloadNotificationHelper {
                     .setContentIntent(pendingIntent)
                     .build()
             }
-            DownloadState.DOWNLOADED -> {
-                NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setContentTitle(context.getString(R.string.download_notification_title))
-                    .setContentText(context.getString(R.string.status_downloaded))
-                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
-                    .setProgress(0, 0, false)
-                    .setOngoing(false)
-                    .setAutoCancel(true)
-                    .setContentIntent(pendingIntent)
-                    .build()
-            }
             DownloadState.INSTALLING -> {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setContentTitle(context.getString(R.string.download_notification_title))
@@ -104,9 +100,32 @@ object DownloadNotificationHelper {
                     .build()
             }
             DownloadState.VERIFIED -> {
+                // 下载完成，显示"安装"按钮
+                val installIntent = NotificationInstallReceiver.createInstallIntent(context, progress.filePath)
+                val installPendingIntent = PendingIntent.getBroadcast(
+                    context, 0, installIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setContentTitle(context.getString(R.string.download_notification_title))
                     .setContentText(context.getString(R.string.download_complete_notification))
+                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setProgress(0, 0, false)
+                    .setOngoing(false)
+                    .setAutoCancel(true)
+                    .setContentIntent(pendingIntent)
+                    .addAction(
+                        android.R.drawable.ic_menu_save,
+                        context.getString(R.string.btn_install),
+                        installPendingIntent
+                    )
+                    .build()
+            }
+            DownloadState.DOWNLOADED -> {
+                NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setContentTitle(context.getString(R.string.download_notification_title))
+                    .setContentText(context.getString(R.string.status_downloaded))
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setProgress(0, 0, false)
                     .setOngoing(false)
@@ -175,7 +194,7 @@ object DownloadNotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(context.getString(R.string.download_notification_title))
-            .setContentText("更新已自动安装完成")
+            .setContentText(context.getString(R.string.install_complete_notification))
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setProgress(0, 0, false)
             .setOngoing(false)
@@ -183,7 +202,10 @@ object DownloadNotificationHelper {
             .setContentIntent(pendingIntent)
             .build()
 
-        manager.notify(NOTIFICATION_ID, notification)
+        // 使用安装完成专用 ID，避免覆盖下载进度通知
+        manager.notify(INSTALL_COMPLETE_NOTIFICATION_ID, notification)
+        // 取消下载进度通知
+        manager.cancel(NOTIFICATION_ID)
     }
 
     /**

@@ -51,7 +51,12 @@ data class DownloadProgress(
     val filePath: String = ""
 ) {
     val progressPercent: Int
-        get() = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt() else 0
+        get() = when {
+            state == DownloadState.DOWNLOADED || state == DownloadState.VERIFIED -> 100
+            state == DownloadState.VERIFYING -> 100
+            totalBytes > 0 -> ((downloadedBytes * 100) / totalBytes).toInt().coerceAtMost(100)
+            else -> 0
+        }
 
     val isCompleted: Boolean
         get() = state == DownloadState.DOWNLOADED || state == DownloadState.VERIFIED
