@@ -3,6 +3,7 @@ package com.swupdater.ui
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -14,6 +15,9 @@ import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
@@ -456,8 +460,17 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             Preference(context).apply {
                 key = "pref_version"
                 title = getString(R.string.pref_version)
-                summary = "v1.7.0"
-                isSelectable = false
+                // 动态读取当前应用版本号
+                val pkgInfo = try {
+                    requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+                } catch (_: Exception) { null }
+                val currentVer = pkgInfo?.versionName ?: "未知"
+                summary = "v$currentVer（点击检查更新）"
+                isSelectable = true
+                setOnPreferenceClickListener {
+                    checkSelfUpdate(currentVer)
+                    true
+                }
                 otherCategory.addPreference(this)
             }
 
@@ -478,6 +491,73 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     Toast.makeText(requireContext(), "日志已复制到剪贴板", Toast.LENGTH_SHORT).show()
                 }
                 .show()
+        }
+
+        /**
+         * 检查本应用自身是否有新版本
+         * 从 GitHub Release 获取最新版本号，与当前版本对比
+         */
+        private fun checkSelfUpdate(currentVersion: String) {
+            val pref = findPreference<Preference>("pref_version")
+            pref?.summary = "正在检查更新…"
+
+            lifecycleScope.launch {
+                try {
+                    val latestVersion = withContext(Dispatchers.IO) {
+                        // 从 GitHub Release API 获取最新版本
+                        val url = "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest"
+                        val request = okhttp3.Request.Builder().url(url).build()
+                        val client = okhttp3.OkHttpClient.Builder()
+                            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                            .build()
+                        val response = client.newCall(request).execute()
+                        if (!response.isSuccessful) {
+                            response.close()
+                            return@withContext null
+                        }
+                        val body = response.body?.string() ?: return@withContext null
+                        response.close()
+
+                        // 解析 JSON 获取 tag_name
+                        val json = com.google.gson.JsonParser.parseString(body).asJsonObject
+                        val tagName = json.get("tag_name")?.asString ?: return@withContext null
+                        // tag 格式: v1.7.2 -> 1.7.2
+                        tagName.removePrefix("v")
+                    }
+
+                    if (latestVersion == null) {
+                        pref?.summary = "v$currentVersion（检查失败，稍后重试）"
+                        Toast.makeText(requireContext(), "检查更新失败，请检查网络", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
+                    if (latestVersion != currentVersion) {
+                        // 有新版本
+                        pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
+                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("发现新版本 v$latestVersion")
+                            .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n是否前往下载？")
+                            .setPositiveButton("去下载") { _, _ ->
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse("https://github.com/michaelggr/SWUpdater/releases/latest")
+                                )
+                                startActivity(intent)
+                            }
+                            .setNegativeButton("稍后", null)
+                            .show()
+                    } else {
+                        // 已是最新
+                        pref?.summary = "v$currentVersion（已是最新版本）"
+                        Toast.makeText(requireContext(), "当前已是最新版本 v$currentVersion", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    pref?.summary = "v$currentVersion（检查失败）"
+                    Toast.makeText(requireContext(), "检查更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    AppLog.e("Settings", "检查应用更新失败: ${e.message}")
+                }
+            }
         }
     }
 }
