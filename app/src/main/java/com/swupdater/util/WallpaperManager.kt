@@ -145,9 +145,40 @@ object WallpaperManager {
     }
 
     /**
+     * 壁纸源：官网资料库相册
+     * 来源: summonerswar.com/zh-hans/skyarena/library 相册分类
+     */
+    object LibrarySource {
+        const val NAME = "资料库相册"
+        const val ID = "library"
+
+        val GALLERY_URLS = listOf(
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181239_6gJHLaoOQk.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181130_TPFd4IFiwP.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181108_Wdb7TRok3o.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_180952_8JgLOa78Sm.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_180930_YVSMv9ZIAM.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260220_142220_5XeVmIleBC.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260220_142155_ekTxvqw8T2.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153538_gQNBVfwaZy.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153453_QVi6IqgNWV.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153517_rPuqtkuJcl.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153237_WNR6KOWi0y.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251121_115516_KVZuhuZYEd.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251121_115438_Lm2BWGBFoq.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251020_133351_iRqq5w1gLB.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251020_133315_m7KFSsbwyu.png",
+            "https://hive-fn.qpyou.cn/webdev/smon/20231110_095922_3wM7CaCP20.png"
+        )
+
+        val ALL_URLS: List<String> = GALLERY_URLS
+    }
+
+    /**
      * 可选壁纸源列表
      */
     val SOURCES = listOf(
+        LibrarySource.ID to LibrarySource.NAME,
         OfficialSource.ID to OfficialSource.NAME,
         SwcArtSource.ID to SwcArtSource.NAME
     )
@@ -250,7 +281,7 @@ object WallpaperManager {
      * 获取当前壁纸源ID
      */
     fun getWallpaperSource(context: Context): String {
-        return getPrefs(context).getString(PREF_WALLPAPER_SOURCE, OfficialSource.ID) ?: OfficialSource.ID
+        return getPrefs(context).getString(PREF_WALLPAPER_SOURCE, LibrarySource.ID) ?: LibrarySource.ID
     }
 
     /**
@@ -265,6 +296,7 @@ object WallpaperManager {
      */
     fun getUrlsForSource(sourceId: String): List<String> {
         return when (sourceId) {
+            LibrarySource.ID -> LibrarySource.ALL_URLS
             SwcArtSource.ID -> SwcArtSource.ALL_URLS
             else -> OfficialSource.ALL_URLS
         }
