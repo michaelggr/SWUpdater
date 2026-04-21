@@ -4,19 +4,30 @@
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="?attr/colorControlNormal">
-    <!-- 手机外框 -->
+    <!-- 魔灵召唤水晶菱形（游戏标志性召唤石） -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M7,2C5.9,2 5,2.9 5,4V20C5,21.1 5.9,22 7,22H17C18.1,22 19,21.1 19,20V4C19,2.9 18.1,2 17,2H7ZM7,4H17V18H7V4Z"/>
-    <!-- 壁纸图案（山和太阳） -->
+        android:pathData="M12,1L16.5,6.5L12,12L7.5,6.5Z"/>
+    <!-- 水晶右半面（稍暗，体现立体感） -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M9,14L11.5,11L13,13L15.5,10L17,14H9Z"/>
+        android:fillAlpha="0.45"
+        android:pathData="M12,1L16.5,6.5L12,12Z"/>
+    <!-- 向下箭头杆 -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M10,9.5C10,10.33 9.33,11 8.5,11C7.67,11 7,10.33 7,9.5C7,8.67 7.67,8 8.5,8C9.33,8 10,8.67 10,9.5Z"/>
-    <!-- 勾号（表示应用） -->
+        android:pathData="M10.8,12.5H13.2V16H10.8Z"/>
+    <!-- 向下箭头头 -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M17.5,5.5L14,9L12.5,7.5L11,9L14,12L19,7L17.5,5.5Z"/>
+        android:pathData="M8,15L12,19L16,15Z"/>
+    <!-- 底部屏幕/壁纸横条 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,19.5H21V22H3Z"/>
+    <!-- 屏幕内山形图案（表示壁纸内容） -->
+    <path
+        android:fillColor="@android:color/white"
+        android:fillAlpha="0.3"
+        android:pathData="M5,22L8.5,19.8L10.5,21L13.5,19.5L17,22Z"/>
 </vector>
