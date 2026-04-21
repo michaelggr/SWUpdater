@@ -149,17 +149,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 将 Bitmap 应用到背景，并根据设置调整遮罩透明度
-     * 横版图片使用 fitCenter 完整显示，竖版图片使用 centerCrop 填满屏幕
+     * 将 Bitmap 应用到背景
+     * 横版壁纸使用 fitCenter 完整显示（等比缩放，上下留空）
      */
     private fun applyWallpaperBitmap(bitmap: Bitmap) {
-        // 根据图片宽高比选择 ScaleType
-        val isLandscape = bitmap.width > bitmap.height
-        binding.ivWallpaper.scaleType = if (isLandscape) {
-            ImageView.ScaleType.FIT_CENTER  // 横版：完整显示，上下留黑边
-        } else {
-            ImageView.ScaleType.CENTER_CROP // 竖版：裁剪填满屏幕
-        }
+        binding.ivWallpaper.scaleType = ImageView.ScaleType.FIT_CENTER
         binding.ivWallpaper.setImageBitmap(bitmap)
         binding.ivWallpaper.visibility = View.VISIBLE
 
@@ -215,9 +209,17 @@ class MainActivity : AppCompatActivity() {
             binding.layoutCurrentVersion.backgroundTintList = android.content.res.ColorStateList.valueOf(versionBgColor)
             binding.layoutLatestVersion.backgroundTintList = android.content.res.ColorStateList.valueOf(versionBgColor)
 
-            // 5. 底部按钮区域 — 也可以半透明
-            // Outlined按钮保持不变（透明背景只有边框），Primary按钮加透明度
-            // 不对按钮做透明度处理，因为按钮文字需要清晰可读
+            // 5. 主操作按钮背景透明度
+            // Primary 按钮根据壁纸透明度调整背景色
+            val btnBgColor = Color.argb(
+                cardAlpha255,
+                Color.red(SW_PRIMARY_COLOR), Color.green(SW_PRIMARY_COLOR), Color.blue(SW_PRIMARY_COLOR)
+            )
+            setButtonBackground(binding.btnCheckUpdate, btnBgColor)
+            setButtonBackground(binding.btnDownload, btnBgColor)
+            setButtonBackground(binding.btnInstall, btnBgColor)
+            setButtonBackground(binding.btnOpenStore, btnBgColor)
+            setButtonBackground(binding.btnOpenGame, btnBgColor)
 
         } else {
             // 没有壁纸时，恢复默认不透明背景
@@ -235,6 +237,14 @@ class MainActivity : AppCompatActivity() {
             // 恢复版本小卡
             binding.layoutCurrentVersion.backgroundTintList = null
             binding.layoutLatestVersion.backgroundTintList = null
+
+            // 恢复按钮默认背景
+            val defaultBtnColor = ContextCompat.getColor(this@MainActivity, R.color.secondary)
+            setButtonBackground(binding.btnCheckUpdate, defaultBtnColor)
+            setButtonBackground(binding.btnDownload, defaultBtnColor)
+            setButtonBackground(binding.btnInstall, defaultBtnColor)
+            setButtonBackground(binding.btnOpenStore, defaultBtnColor)
+            setButtonBackground(binding.btnOpenGame, defaultBtnColor)
         }
     }
 
@@ -252,6 +262,17 @@ class MainActivity : AppCompatActivity() {
         val defaultColor = ContextCompat.getColor(this, R.color.card_background)
         card.setCardBackgroundColor(defaultColor)
     }
+
+    /**
+     * 设置按钮背景色
+     */
+    private fun setButtonBackground(btn: com.google.android.material.button.MaterialButton, color: Int) {
+        btn.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+    }
+
+    /** 主按钮主题色（从 R.color.secondary 获取） */
+    private val SW_PRIMARY_COLOR: Int
+        get() = ContextCompat.getColor(this, R.color.secondary)
 
     /**
      * 将当前背景壁纸应用到手机系统壁纸

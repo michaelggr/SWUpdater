@@ -7,12 +7,12 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- 壁纸背景层 -->
+    <!-- 壁纸背景层（fitCenter 完整显示横版壁纸，不裁剪） -->
     <ImageView
         android:id="@+id/iv_wallpaper"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         android:visibility="gone"
         android:contentDescription="@string/btn_random_wallpaper" />
 
@@ -467,7 +467,7 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- ========== 右下角壁纸浮动按钮 ========== -->
+    <!-- ========== 右下角壁纸浮动按钮（带文字标签） ========== -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -476,52 +476,104 @@
         android:layout_marginEnd="@dimen/spacing_md"
         android:layout_marginBottom="@dimen/spacing_md">
 
-        <!-- 打开缓存目录按钮 -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_open_folder"
+        <!-- 文件夹 -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/spacing_sm"
-            android:src="@drawable/ic_folder_open"
-            android:contentDescription="@string/btn_open_folder"
-            app:fabSize="mini"
-            app:backgroundTint="@color/surface"
-            app:tint="@color/secondary" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginEnd="@dimen/spacing_sm">
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_open_folder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_folder_open"
+                android:contentDescription="@string/btn_open_folder"
+                app:fabSize="mini"
+                app:backgroundTint="@color/surface"
+                app:tint="@color/secondary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="目录"
+                android:textSize="10sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
-        <!-- 壁纸下载按钮 -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_download_wallpaper"
+        <!-- 下载壁纸 -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/spacing_sm"
-            android:src="@drawable/ic_wallpaper_download"
-            android:contentDescription="@string/btn_download_wallpaper"
-            app:fabSize="mini"
-            app:backgroundTint="@color/surface"
-            app:tint="@color/secondary" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginEnd="@dimen/spacing_sm">
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_download_wallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_wallpaper_download"
+                android:contentDescription="@string/btn_download_wallpaper"
+                app:fabSize="mini"
+                app:backgroundTint="@color/surface"
+                app:tint="@color/secondary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="保存"
+                android:textSize="10sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
-        <!-- 应用到手机壁纸按钮 -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_apply_wallpaper"
+        <!-- 应用到手机壁纸 -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/spacing_sm"
-            android:src="@drawable/ic_wallpaper_apply"
-            android:contentDescription="@string/btn_apply_wallpaper"
-            app:fabSize="mini"
-            app:backgroundTint="@color/surface"
-            app:tint="@color/secondary" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:layout_marginEnd="@dimen/spacing_sm">
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_apply_wallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_wallpaper_apply"
+                android:contentDescription="@string/btn_apply_wallpaper"
+                app:fabSize="mini"
+                app:backgroundTint="@color/surface"
+                app:tint="@color/secondary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="设壁纸"
+                android:textSize="10sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
-        <!-- 随机壁纸按钮（刷新图标） -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_random_wallpaper"
+        <!-- 随机壁纸（主按钮） -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_refresh"
-            android:contentDescription="@string/btn_random_wallpaper"
-            app:fabSize="normal"
-            app:backgroundTint="@color/secondary"
-            app:tint="@color/on_secondary" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/fab_random_wallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_refresh"
+                android:contentDescription="@string/btn_random_wallpaper"
+                app:fabSize="normal"
+                app:backgroundTint="@color/secondary"
+                app:tint="@color/on_secondary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="换壁纸"
+                android:textSize="10sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
     </LinearLayout>
 
