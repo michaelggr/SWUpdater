@@ -7,27 +7,27 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- 壁纸背景层（fitCenter 完整显示横版壁纸，不裁剪） -->
+    <!-- 壁纸背景层（centerCrop 填满全屏，配合毛玻璃模糊） -->
     <ImageView
         android:id="@+id/iv_wallpaper"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="fitCenter"
+        android:scaleType="centerCrop"
         android:visibility="gone"
         android:contentDescription="@string/btn_random_wallpaper" />
 
-    <!-- 半透明遮罩，让壁纸透出来同时保证文字可读 -->
-    <View
-        android:id="@+id/view_wallpaper_overlay"
+    <!-- 毛玻璃模糊层 — 替代原来的实色遮罩 -->
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/blur_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/wallpaper_overlay"
-        android:visibility="gone" />
+        app:blurOverlayColor="#B3FFFFFF" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -55,22 +55,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="@dimen/spacing_md"
-                android:paddingBottom="80dp">
+                android:padding="12dp"
+                android:paddingBottom="72dp">
 
-                <!-- 游戏信息卡片 -->
+                <!-- 游戏信息卡片（毛玻璃） -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_game_info"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     style="@style/Widget.SWUpdater.CardView"
-                    android:layout_marginBottom="@dimen/spacing_md">
+                    android:layout_marginBottom="10dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="@dimen/spacing_md">
+                        android:padding="12dp">
 
                         <!-- 游戏图标 + 名称 -->
                         <LinearLayout
@@ -78,13 +78,15 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
-                            android:layout_marginBottom="@dimen/spacing_md">
+                            android:layout_marginBottom="10dp">
 
-                            <ImageView
+                            <!-- 圆角图标 -->
+                            <com.google.android.material.imageview.ShapeableImageView
                                 android:id="@+id/iv_game_icon"
                                 android:layout_width="@dimen/icon_xxl"
                                 android:layout_height="@dimen/icon_xxl"
                                 android:src="@mipmap/ic_launcher"
+                                app:shapeAppearanceOverlay="@style/RoundedIconShape"
                                 android:contentDescription="@string/app_name" />
 
                             <LinearLayout
@@ -102,13 +104,7 @@
                                     android:textSize="@dimen/text_title"
                                     android:textStyle="bold" />
 
-                                <TextView
-                                    android:id="@+id/tv_game_package"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="@dimen/text_caption"
-                                    tools:text="com.com2us.smon.normal.freefull.google.kr.android.common" />
+                                <!-- 包名已隐藏 -->
 
                             </LinearLayout>
 
@@ -187,7 +183,7 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
-                            android:layout_marginTop="@dimen/spacing_md"
+                            android:layout_marginTop="10dp"
                             android:padding="@dimen/spacing_sm">
 
                             <View
@@ -218,7 +214,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     style="@style/Widget.SWUpdater.CardView"
-                    android:layout_marginBottom="@dimen/spacing_md"
+                    android:layout_marginBottom="10dp"
                     android:visibility="gone"
                     tools:visibility="visible">
 
@@ -226,7 +222,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="@dimen/spacing_md">
+                        android:padding="12dp">
 
                         <TextView
                             android:id="@+id/tv_download_title"
@@ -293,7 +289,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginBottom="@dimen/spacing_md">
+                    android:layout_marginBottom="10dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_check_update"
@@ -328,7 +324,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_stop_download"
-                        style="@style/Widget.SWUpdater.Button.Outlined"
+                        style="@style/Widget.SWUpdater.Button.Tonal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/spacing_sm"
@@ -348,9 +344,10 @@
                         app:icon="@drawable/ic_install"
                         app:iconGravity="textStart" />
 
+                    <!-- 启动游戏按钮 → Tonal 风格（有背景色，文字清晰可读） -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_open_game"
-                        style="@style/Widget.SWUpdater.Button.Outlined"
+                        style="@style/Widget.SWUpdater.Button.Tonal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/spacing_sm"
@@ -374,7 +371,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="@dimen/spacing_md">
+                        android:padding="12dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -402,7 +399,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:layout_marginTop="@dimen/spacing_md"
                     android:gravity="center_horizontal">
 
                     <!-- 底部按钮行 -->
@@ -415,7 +412,7 @@
                         <!-- 魔灵工具箱按钮 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_toolbox"
-                            style="@style/Widget.SWUpdater.Button.Outlined"
+                            style="@style/Widget.SWUpdater.Button.Tonal"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -430,7 +427,7 @@
                         <!-- 反馈留言按钮 -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_feedback"
-                            style="@style/Widget.SWUpdater.Button.Outlined"
+                            style="@style/Widget.SWUpdater.Button.Tonal"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -490,7 +487,7 @@
                 android:src="@drawable/ic_folder_open"
                 android:contentDescription="@string/btn_open_folder"
                 app:fabSize="mini"
-                app:backgroundTint="@color/surface"
+                app:backgroundTint="@color/glass_card_background"
                 app:tint="@color/secondary" />
             <TextView
                 android:layout_width="wrap_content"
@@ -515,7 +512,7 @@
                 android:src="@drawable/ic_wallpaper_download"
                 android:contentDescription="@string/btn_download_wallpaper"
                 app:fabSize="mini"
-                app:backgroundTint="@color/surface"
+                app:backgroundTint="@color/glass_card_background"
                 app:tint="@color/secondary" />
             <TextView
                 android:layout_width="wrap_content"
@@ -540,7 +537,7 @@
                 android:src="@drawable/ic_wallpaper_apply"
                 android:contentDescription="@string/btn_apply_wallpaper"
                 app:fabSize="mini"
-                app:backgroundTint="@color/surface"
+                app:backgroundTint="@color/glass_card_background"
                 app:tint="@color/secondary" />
             <TextView
                 android:layout_width="wrap_content"

@@ -73,17 +73,33 @@ class MainActivity : AppCompatActivity() {
         setupButtons()
         setupWallpaperFab()
         setupFooterButtons()
+        setupBlurView()
         observeViewModel()
 
         // 首次启动检查权限并自动检查更新
         checkAndRequestPermissions()
 
-        // 启动时自动更换壁纸
-        if (WallpaperManager.isAutoChangeEnabled(this)) {
-            applyRandomWallpaper()
-        } else {
-            restoreWallpaper()
-        }
+        // 启动时加载壁纸（自动更换或恢复上次的壁纸/默认壁纸）
+        loadWallpaperOnStart()
+    }
+
+    // ========== 毛玻璃模糊 ==========
+
+    /**
+     * 初始化 BlurView
+     * 需要在 setContentView 之后调用，用 rootView 作为模糊源
+     */
+    private fun setupBlurView() {
+        val decorView = window.decorView
+        val rootView = decorView.findViewById<android.view.ViewGroup>(android.R.id.content)
+        val windowBackground = decorView.background
+
+        binding.blurOverlay.setupWith(rootView)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurRadius(20f)
+
+        // 初始隐藏，有壁纸时才显示
+        binding.blurOverlay.visibility = View.GONE
     }
 
     // ========== 壁纸功能 ==========
@@ -111,11 +127,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * 启动时加载壁纸
+     * - 自动更换模式：随机换一张
+     * - 否则：恢复上次的壁纸，或加载默认壁纸
+     */
+    private fun loadWallpaperOnStart() {
+        lifecycleScope.launch {
+            if (WallpaperManager.isAutoChangeEnabled(this@MainActivity)) {
+                applyRandomWallpaper()
+            } else {
+                restoreWallpaper()
+            }
+        }
+    }
+
+    /**
      * 随机更换壁纸
      */
     private fun applyRandomWallpaper() {
         lifecycleScope.launch {
             try {
+                // 确保至少有默认壁纸
+                WallpaperManager.ensureDefaultWallpaper(this@MainActivity)
+
                 val wallpaperFile = WallpaperManager.randomWallpaper(this@MainActivity)
                 if (wallpaperFile != null) {
                     val bitmap = withContext(Dispatchers.IO) {
@@ -132,11 +166,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 恢复上次使用的壁纸
+     * 恢复上次使用的壁纸，没有则加载默认壁纸
      */
     private fun restoreWallpaper() {
         lifecycleScope.launch {
-            val wallpaperFile = WallpaperManager.getCurrentWallpaperFile(this@MainActivity)
+            var wallpaperFile = WallpaperManager.getCurrentWallpaperFile(this@MainActivity)
+
+            // 没有当前壁纸？尝试加载默认壁纸
+            if (wallpaperFile == null) {
+                wallpaperFile = WallpaperManager.ensureDefaultWallpaper(this@MainActivity)
+            }
+
             if (wallpaperFile != null) {
                 val bitmap = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(wallpaperFile.absolutePath)
@@ -150,10 +190,10 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * 将 Bitmap 应用到背景
-     * 横版壁纸使用 fitCenter 完整显示（等比缩放，上下留空）
+     * 使用 centerCrop 填满全屏，配合毛玻璃模糊效果
      */
     private fun applyWallpaperBitmap(bitmap: Bitmap) {
-        binding.ivWallpaper.scaleType = ImageView.ScaleType.FIT_CENTER
+        binding.ivWallpaper.scaleType = ImageView.ScaleType.CENTER_CROP
         binding.ivWallpaper.setImageBitmap(bitmap)
         binding.ivWallpaper.visibility = View.VISIBLE
 
@@ -163,16 +203,14 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * 根据设置更新所有UI元素的透明度
-     * alphaPercent: 0=全透明(壁纸全可见), 100=全不透明(壁纸不可见)
-     *
-     * 所有UI元素（遮罩层、卡片、工具栏、版本小卡）都响应此设置
+     * 毛玻璃模式：模糊层 + 半透明卡片
      */
     fun updateOverlayAlpha() {
         val alphaPercent = WallpaperManager.getOverlayAlpha(this)
         val hasWallpaper = binding.ivWallpaper.visibility == View.VISIBLE
 
         if (hasWallpaper) {
-            binding.viewWallpaperOverlay.visibility = View.VISIBLE
+            binding.blurOverlay.visibility = View.VISIBLE
 
             // 将百分比转为0-255的alpha值
             val alpha255 = (alphaPercent * 255 / 100).coerceIn(0, 255)
@@ -180,50 +218,52 @@ class MainActivity : AppCompatActivity() {
             // 根据当前主题选择遮罩底色
             val isDarkMode = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
                     android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val baseColor = if (isDarkMode) Color.parseColor("#0D0B1A") else Color.parseColor("#FFFFFF")
+
+            // 1. 毛玻璃模糊层 — 设置叠加颜色和透明度
+            val overlayColor = if (isDarkMode) {
+                Color.argb(alpha255, 13, 11, 26)
+            } else {
+                Color.argb(alpha255, 255, 255, 255)
+            }
+            binding.blurOverlay.setOverlayColor(overlayColor)
+
+            // 2. 工具栏背景 — 毛玻璃效果
+            val toolbarColor = if (isDarkMode) {
+                Color.argb(alpha255, 13, 11, 26)
+            } else {
+                Color.argb(alpha255, 255, 255, 255)
+            }
+            binding.appBarLayout.background = ColorDrawable(toolbarColor)
+
+            // 3. 卡片背景 — 最低128透明度保证文字可读
+            val cardAlpha = alpha255.coerceAtLeast(128)
             val cardBaseColor = if (isDarkMode) Color.parseColor("#1E1B35") else Color.parseColor("#FFFFFF")
-            val versionCardBaseColor = if (isDarkMode) Color.parseColor("#252244") else Color.parseColor("#F3EFFF")
+            val cardBgColor = Color.argb(cardAlpha, Color.red(cardBaseColor), Color.green(cardBaseColor), Color.blue(cardBaseColor))
 
-            // 1. 背景遮罩层 — 使用完整透明度
-            binding.viewWallpaperOverlay.setBackgroundColor(
-                Color.argb(alpha255, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
-            )
-
-            // 2. 工具栏背景 — 使用完整透明度
-            binding.appBarLayout.background = ColorDrawable(
-                Color.argb(alpha255, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
-            )
-
-            // 3. 卡片背景 — 使用稍微降低的透明度，让卡片内容更清晰
-            val cardAlpha255 = alpha255.coerceAtLeast((alphaPercent * 255 / 100 * 0.85).toInt())
-            val cardBgColor = Color.argb(cardAlpha255, Color.red(cardBaseColor), Color.green(cardBaseColor), Color.blue(cardBaseColor))
-
-            // 设置所有 MaterialCardView 的背景
             setCardBackground(binding.cardGameInfo, cardBgColor)
-            // card_download 和 card_changelog 可能在运行时可见/隐藏
             setCardBackground(binding.cardDownload, cardBgColor)
             setCardBackground(binding.cardChangelog, cardBgColor)
 
-            // 4. 版本信息小卡背景 — 使用稍微降低的透明度
-            val versionBgColor = Color.argb(cardAlpha255, Color.red(versionCardBaseColor), Color.green(versionCardBaseColor), Color.blue(versionCardBaseColor))
+            // 4. 版本信息小卡背景
+            val versionCardBaseColor = if (isDarkMode) Color.parseColor("#252244") else Color.parseColor("#F3EFFF")
+            val versionBgColor = Color.argb(cardAlpha, Color.red(versionCardBaseColor), Color.green(versionCardBaseColor), Color.blue(versionCardBaseColor))
             binding.layoutCurrentVersion.backgroundTintList = android.content.res.ColorStateList.valueOf(versionBgColor)
             binding.layoutLatestVersion.backgroundTintList = android.content.res.ColorStateList.valueOf(versionBgColor)
 
-            // 5. 主操作按钮背景透明度
-            // Primary 按钮根据壁纸透明度调整背景色
+            // 5. 主操作按钮背景透明度（Primary 按钮）
             val btnBgColor = Color.argb(
-                cardAlpha255,
+                cardAlpha,
                 Color.red(SW_PRIMARY_COLOR), Color.green(SW_PRIMARY_COLOR), Color.blue(SW_PRIMARY_COLOR)
             )
             setButtonBackground(binding.btnCheckUpdate, btnBgColor)
             setButtonBackground(binding.btnDownload, btnBgColor)
             setButtonBackground(binding.btnInstall, btnBgColor)
             setButtonBackground(binding.btnOpenStore, btnBgColor)
-            setButtonBackground(binding.btnOpenGame, btnBgColor)
+            // Tonal 按钮（启动游戏、停止下载）不覆盖透明度，它们有自己的半透明背景
 
         } else {
             // 没有壁纸时，恢复默认不透明背景
-            binding.viewWallpaperOverlay.visibility = View.GONE
+            binding.blurOverlay.visibility = View.GONE
 
             // 恢复工具栏
             binding.appBarLayout.background = null
@@ -244,7 +284,6 @@ class MainActivity : AppCompatActivity() {
             setButtonBackground(binding.btnDownload, defaultBtnColor)
             setButtonBackground(binding.btnInstall, defaultBtnColor)
             setButtonBackground(binding.btnOpenStore, defaultBtnColor)
-            setButtonBackground(binding.btnOpenGame, defaultBtnColor)
         }
     }
 
@@ -563,7 +602,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.installedInfo.collect { info ->
                 info?.let {
                     binding.tvCurrentVersion.text = if (it.isInstalled) it.versionName else getString(R.string.version_not_installed)
-                    binding.tvGamePackage.text = it.packageName
+                    // 包名已隐藏
                     binding.btnOpenGame.visibility = if (it.isInstalled) View.VISIBLE else View.GONE
                 }
             }

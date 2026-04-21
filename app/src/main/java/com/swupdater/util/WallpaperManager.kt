@@ -495,6 +495,48 @@ object WallpaperManager {
         return count
     }
 
+    // ========== 默认壁纸 ==========
+
+    /**
+     * 确保有默认壁纸可用
+     * 首次启动时从 assets 复制默认壁纸到缓存目录
+     * 返回当前壁纸文件（可能是已有的，也可能是新复制的默认壁纸）
+     */
+    fun ensureDefaultWallpaper(context: Context): File? {
+        // 已有当前壁纸，无需默认
+        val current = getCurrentWallpaperFile(context)
+        if (current != null) return current
+
+        // 已有缓存壁纸，选一张
+        val cached = getCachedWallpapers(context)
+        if (cached.isNotEmpty()) {
+            val picked = cached.random()
+            setCurrentWallpaperName(context, picked.name)
+            return picked
+        }
+
+        // 从 assets 复制默认壁纸
+        try {
+            val dir = getWallpaperDir(context)
+            val targetFile = File(dir, "default_wallpaper.jpg")
+
+            if (!targetFile.exists()) {
+                context.assets.open("wallpapers/default_wallpaper.jpg").use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.i(TAG, "默认壁纸已复制到: ${targetFile.absolutePath}")
+            }
+
+            setCurrentWallpaperName(context, targetFile.name)
+            return targetFile
+        } catch (e: Exception) {
+            Log.e(TAG, "复制默认壁纸失败", e)
+            return null
+        }
+    }
+
     // ========== 随机换壁纸（含下载） ==========
 
     /**

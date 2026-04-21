@@ -53,4 +53,20 @@
         <item name="android:minHeight">@dimen/progress_height</item>
         <item name="android:maxHeight">@dimen/progress_height</item>
     </style>
+
+    <!-- 圆角图标形状（应用内图标使用） -->
+    <style name="RoundedIconShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <!-- Tonal 按钮（半透明背景，文字清晰可读） -->
+    <style name="Widget.SWUpdater.Button.Tonal" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="backgroundTint">@color/secondary_container</item>
+        <item name="android:textColor">@color/on_secondary_container</item>
+        <item name="cornerRadius">@dimen/corner_full</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
 </resources>

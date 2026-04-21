@@ -34,4 +34,11 @@
 
     <!-- 夜间模式壁纸遮罩（深色半透明） -->
     <color name="wallpaper_overlay">#B30D0B1A</color>
+
+    <!-- 毛玻璃卡片底色 -->
+    <color name="glass_card_background">#C01E1B35</color>
+
+    <!-- Tonal 按钮颜色 -->
+    <color name="secondary_container">#FF4A1FBB</color>
+    <color name="on_secondary_container">#FFEADDFF</color>
 </resources>

@@ -38,4 +38,11 @@
 
     <!-- 日间模式壁纸遮罩（浅色半透明） -->
     <color name="wallpaper_overlay">#B3FFFFFF</color>
+
+    <!-- 毛玻璃卡片底色 -->
+    <color name="glass_card_background">#C0FFFFFF</color>
+
+    <!-- Tonal 按钮颜色 -->
+    <color name="secondary_container">#FFEADDFF</color>
+    <color name="on_secondary_container">#FF21005D</color>
 </resources>
