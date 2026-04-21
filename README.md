@@ -1,5 +1,9 @@
 # 魔灵召唤 · 自动更新
 
+[![CI Build](https://github.com/michaelggr/SWUpdater/actions/workflows/build.yml/badge.svg)](https://github.com/michaelggr/SWUpdater/actions/workflows/build.yml)
+[![Release](https://github.com/michaelggr/SWUpdater/actions/workflows/release.yml/badge.svg)](https://github.com/michaelggr/SWUpdater/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/michaelggr/SWUpdater?label=latest)](https://github.com/michaelggr/SWUpdater/releases/latest)
+
 > 面向中国地区《魔灵召唤：天空之役》玩家的游戏更新管理工具
 
 ## 功能概述
@@ -14,7 +18,7 @@
 | **完整性校验** | 下载后自动校验 MD5 / SHA256 / 文件大小 |
 | **Root 自动安装** | 已 Root 设备下载完成后自动静默安装，无需手动确认 |
 | **系统安装** | 非 Root 设备自动处理安装权限，FileProvider 安全安装 |
-| **壁纸系统** | 随机壁纸、壁纸下载、透明度控制 |
+| **壁纸系统** | 随机壁纸、壁纸下载、应用到手机壁纸、透明度控制 |
 | **后台保活** | 前台服务 + WakeLock + 开机自启 + Root 保活 |
 
 ## 兼容性
@@ -284,3 +288,33 @@ chmod +x gradlew
 | v1.5.0 | 内容透明化、FAB 按钮、数据源 URL 统一 |
 | v1.6.0 | 壁纸透明度设置、FAB 移至右下角、刷新图标 |
 | **v1.7.0** | 缓存目录迁移至公用目录、修复 64KB/0KB 下载问题、去除渠道选择直接下载、WiFi 自动下载 + 通知栏进度、Root 自动静默安装、后台保活 |
+
+## CI/CD
+
+本项目使用 GitHub Actions 实现自动编译和发布：
+
+| 工作流 | 触发条件 | 功能 |
+|--------|----------|------|
+| **CI Build** | push / PR 到 main | 编译 Debug APK 验证代码 |
+| **Release** | 推送 `v*` tag | 编译签名 Release APK → 自动生成 Changelog → 创建 GitHub Release |
+
+### 发布新版本
+
+```bash
+# 1. 更新版本号（修改 gradle.properties 中的 versionName 和 versionCode）
+# 2. 提交代码
+git add . && git commit -m "chore: bump version to x.x.x"
+
+# 3. 打 tag 并推送
+git tag vx.x.x
+git push origin main --tags
+
+# GitHub Actions 会自动：
+# - 编译签名 Release APK
+# - 从 commit 历史生成更新日志
+# - 创建 GitHub Release 并上传 APK
+```
+
+### 手动发布
+
+在 GitHub 仓库的 Actions → Release 页面点击 "Run workflow"，输入版本号即可。

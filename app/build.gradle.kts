@@ -3,6 +3,12 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// ========== 版本号（支持 CI 参数注入） ==========
+// CI 环境通过 -PversionName=x.x.x -PversionCode=xxx 注入
+// 本地开发使用 gradle.properties 中的默认值
+val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "1.7.0" }
+val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 2
+
 android {
     namespace = "com.swupdater"
     compileSdk = 34
@@ -11,10 +17,32 @@ android {
         applicationId = "com.swupdater"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.7.0"
+        versionCode = versionCodeProp ?: 2
+        versionName = versionNameProp
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // ========== 签名配置 ==========
+    // 优先从环境变量读取（CI），回退到 local.properties（本地开发）
+    val keystorePath = System.getenv("KEYSTORE_PATH")
+        ?: project.findProperty("KEYSTORE_PATH") as? String ?: ""
+    val keystorePwd = System.getenv("KEYSTORE_PASSWORD")
+        ?: project.findProperty("KEYSTORE_PASSWORD") as? String ?: ""
+    val keyAliasVal = System.getenv("KEY_ALIAS")
+        ?: project.findProperty("KEY_ALIAS") as? String ?: ""
+    val keyPwd = System.getenv("KEY_PASSWORD")
+        ?: project.findProperty("KEY_PASSWORD") as? String ?: ""
+
+    signingConfigs {
+        if (keystorePath.isNotEmpty() && keystorePwd.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePwd
+                keyAlias = keyAliasVal
+                keyPassword = keyPwd
+            }
+        }
     }
 
     buildTypes {
@@ -24,6 +52,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 有签名配置时使用，否则用 debug 签名
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
         }
         debug {
             isMinifyEnabled = false
