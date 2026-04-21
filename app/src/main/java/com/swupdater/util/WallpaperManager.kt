@@ -147,12 +147,33 @@ object WallpaperManager {
     /**
      * 壁纸源：官网资料库相册
      * 来源: summonerswar.com/zh-hans/skyarena/library 相册分类
+     * 每个条目有缩略图(thumb)和点击后的大图(full)，这里用大图获得更高质量
      */
     object LibrarySource {
         const val NAME = "资料库相册"
         const val ID = "library"
 
-        val GALLERY_URLS = listOf(
+        // 大图（点击后打开的高清版本）
+        val FULL_URLS = listOf(
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181247_NDbFPHRkFr.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181138_AqUZSUlfLj.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_181112_v7VWuRjqEa.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_180959_tjgse1QQAb.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260402_180937_XN59WbmT2X.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260220_142225_BC9IwgltQD.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260220_142200_7VPS8VmMju.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153544_sqnK8ZGXzG.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153459_N6PLTC9GKS.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153523_2Xs55SmwBv.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20260115_153250_SnozU97RQ4.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251121_115521_jGG1H05JNh.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251121_115444_aTfX5iXdQR.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251020_133356_v0FHXXjJuD.png",
+            "https://event-fn.qpyou.cn/event/event/smon/20251020_133320_MIPrwD6t2u.png"
+        )
+
+        // 缩略图（列表展示用的较小版本）
+        val THUMB_URLS = listOf(
             "https://event-fn.qpyou.cn/event/event/smon/20260402_181239_6gJHLaoOQk.png",
             "https://event-fn.qpyou.cn/event/event/smon/20260402_181130_TPFd4IFiwP.png",
             "https://event-fn.qpyou.cn/event/event/smon/20260402_181108_Wdb7TRok3o.png",
@@ -167,11 +188,11 @@ object WallpaperManager {
             "https://event-fn.qpyou.cn/event/event/smon/20251121_115516_KVZuhuZYEd.png",
             "https://event-fn.qpyou.cn/event/event/smon/20251121_115438_Lm2BWGBFoq.png",
             "https://event-fn.qpyou.cn/event/event/smon/20251020_133351_iRqq5w1gLB.png",
-            "https://event-fn.qpyou.cn/event/event/smon/20251020_133315_m7KFSsbwyu.png",
-            "https://hive-fn.qpyou.cn/webdev/smon/20231110_095922_3wM7CaCP20.png"
+            "https://event-fn.qpyou.cn/event/event/smon/20251020_133315_m7KFSsbwyu.png"
         )
 
-        val ALL_URLS: List<String> = GALLERY_URLS
+        // 合并大图+缩略图（共30张，每个条目2个版本）
+        val ALL_URLS: List<String> = FULL_URLS + THUMB_URLS
     }
 
     /**

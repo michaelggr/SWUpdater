@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.widget.ImageView
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -144,8 +145,16 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * 将 Bitmap 应用到背景，并根据设置调整遮罩透明度
+     * 横版图片使用 fitCenter 完整显示，竖版图片使用 centerCrop 填满屏幕
      */
     private fun applyWallpaperBitmap(bitmap: Bitmap) {
+        // 根据图片宽高比选择 ScaleType
+        val isLandscape = bitmap.width > bitmap.height
+        binding.ivWallpaper.scaleType = if (isLandscape) {
+            ImageView.ScaleType.FIT_CENTER  // 横版：完整显示，上下留黑边
+        } else {
+            ImageView.ScaleType.CENTER_CROP // 竖版：裁剪填满屏幕
+        }
         binding.ivWallpaper.setImageBitmap(bitmap)
         binding.ivWallpaper.visibility = View.VISIBLE
 
