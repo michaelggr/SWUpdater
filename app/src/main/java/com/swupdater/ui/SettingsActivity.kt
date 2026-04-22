@@ -477,6 +477,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         /**
          * 检查本应用自身是否有新版本
          * 从 GitHub Release 获取最新版本号，与当前版本对比
+         * 支持 GitHub API 镜像加速，国内可用
          */
         private fun checkSelfUpdate(currentVersion: String) {
             val pref = findPreference<Preference>("pref_version")
@@ -484,50 +485,56 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             lifecycleScope.launch {
                 try {
-                    val latestVersion = withContext(Dispatchers.IO) {
-                        // 从 GitHub Release API 获取最新版本
-                        val url = "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest"
-                        val request = okhttp3.Request.Builder().url(url).build()
-                        val client = okhttp3.OkHttpClient.Builder()
-                            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                            .build()
-                        val response = client.newCall(request).execute()
-                        if (!response.isSuccessful) {
-                            response.close()
-                            return@withContext null
-                        }
-                        val body = response.body?.string() ?: return@withContext null
-                        response.close()
+                    val result = withContext(Dispatchers.IO) {
+                        // GitHub API 镜像列表（原版 + 国内加速），依次尝试
+                        val apiMirrors = listOf(
+                            "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://gh-proxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://mirror.ghproxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest"
+                        )
 
-                        // 解析 JSON 获取 tag_name
-                        val json = com.google.gson.JsonParser.parseString(body).asJsonObject
-                        val tagName = json.get("tag_name")?.asString ?: return@withContext null
-                        // tag 格式: v1.7.2 -> 1.7.2
-                        tagName.removePrefix("v")
+                        val client = okhttp3.OkHttpClient.Builder()
+                            .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+                            .readTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
+                            .build()
+
+                        for (url in apiMirrors) {
+                            try {
+                                val request = okhttp3.Request.Builder().url(url).build()
+                                val response = client.newCall(request).execute()
+                                if (!response.isSuccessful) {
+                                    response.close()
+                                    continue
+                                }
+                                val body = response.body?.string()
+                                response.close()
+                                if (body.isNullOrBlank()) continue
+
+                                val json = com.google.gson.JsonParser.parseString(body).asJsonObject
+                                val tagName = json.get("tag_name")?.asString ?: continue
+                                // 同时提取下载页 URL（优先镜像）
+                                val htmlUrl = json.get("html_url")?.asString
+                                return@withContext tagName.removePrefix("v") to htmlUrl
+                            } catch (_: Exception) {
+                                continue // 当前镜像失败，尝试下一个
+                            }
+                        }
+                        null // 所有镜像都失败
                     }
 
-                    if (latestVersion == null) {
+                    if (result == null) {
                         pref?.summary = "v$currentVersion（检查失败，稍后重试）"
                         Toast.makeText(requireContext(), "检查更新失败，请检查网络", Toast.LENGTH_SHORT).show()
                         return@launch
                     }
 
+                    val (latestVersion, releaseUrl) = result
+
                     if (latestVersion != currentVersion) {
                         // 有新版本
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-                        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                            .setTitle("发现新版本 v$latestVersion")
-                            .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n是否前往下载？")
-                            .setPositiveButton("去下载") { _, _ ->
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse("https://github.com/michaelggr/SWUpdater/releases/latest")
-                                )
-                                startActivity(intent)
-                            }
-                            .setNegativeButton("稍后", null)
-                            .show()
+                        showUpdateDialog(currentVersion, latestVersion, releaseUrl)
                     } else {
                         // 已是最新
                         pref?.summary = "v$currentVersion（已是最新版本）"
@@ -539,6 +546,38 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     AppLog.e("Settings", "检查应用更新失败: ${e.message}")
                 }
             }
+        }
+
+        /**
+         * 显示更新对话框，提供多个下载镜像
+         */
+        private fun showUpdateDialog(currentVersion: String, latestVersion: String, releaseUrl: String?) {
+            // 下载链接镜像列表
+            val downloadMirrors = listOf(
+                "GitHub（原版）" to "https://github.com/michaelggr/SWUpdater/releases/latest",
+                "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest"
+            )
+
+            val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
+
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("发现新版本 v$latestVersion")
+                .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
+                .setItems(mirrorNames) { _, which ->
+                    val url = downloadMirrors[which].second
+                    try {
+                        startActivity(android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(url)
+                        ))
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("稍后", null)
+                .show()
         }
     }
 }
