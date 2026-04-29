@@ -11,6 +11,7 @@ import androidx.preference.SwitchPreferenceCompat
 import com.swupdater.BuildConfig
 import com.swupdater.R
 import com.swupdater.model.DownloadChannel
+import com.swupdater.model.VersionInfo
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
@@ -508,7 +509,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         /**
          * 显示下载渠道选择对话框
          */
-        private fun showDownloadChannelDialog(latestVersion: com.swupdater.model.VersionInfo) {
+        private fun showDownloadChannelDialog(latestVersion: VersionInfo) {
             val channels = latestVersion.downloadChannels
             if (channels.isEmpty()) {
                 Toast.makeText(requireContext(), "没有可用的下载渠道", Toast.LENGTH_SHORT).show()
@@ -529,9 +530,9 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         /**
          * 根据选择的渠道开始下载
          */
-        private fun startDownload(versionInfo: com.swupdater.model.VersionInfo, channel: com.swupdater.model.DownloadChannel) {
+        private fun startDownload(versionInfo: VersionInfo, channel: DownloadChannel) {
             when (channel.type) {
-                com.swupdater.model.DownloadChannel.ChannelType.APK_DIRECT -> {
+                DownloadChannel.ChannelType.APK_DIRECT -> {
                     // 直接下载APK
                     com.swupdater.service.DownloadService.start(
                         requireContext(),
@@ -540,7 +541,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     )
                     Toast.makeText(requireContext(), "从『${channel.name}』开始下载最新版本: ${versionInfo.versionName}", Toast.LENGTH_SHORT).show()
                 }
-                com.swupdater.model.DownloadChannel.ChannelType.CUSTOM -> {
+                DownloadChannel.ChannelType.CUSTOM -> {
                     // 打开渠道URL（应用市场等）
                     try {
                         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(channel.url))
