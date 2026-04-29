@@ -8,12 +8,14 @@ import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.swupdater.BuildConfig
 import com.swupdater.R
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -165,6 +167,14 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 title = "更新设置"
             }
             screen.addPreference(updateCategory)
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_auto_check_on_launch"
+                title = getString(R.string.pref_auto_check_on_launch)
+                summary = getString(R.string.pref_auto_check_on_launch_summary)
+                setDefaultValue(true)
+                updateCategory.addPreference(this)
+            }
 
             SwitchPreferenceCompat(context).apply {
                 key = "pref_auto_check"
@@ -441,18 +451,28 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             Preference(context).apply {
                 key = "pref_version"
                 title = getString(R.string.pref_version)
-                // 动态读取当前应用版本号
-                val pkgInfo = try {
-                    requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-                } catch (_: Exception) { null }
-                val currentVer = pkgInfo?.versionName ?: "未知"
-                summary = "v$currentVer（点击检查更新）"
-                isSelectable = true
-                setOnPreferenceClickListener {
-                    checkSelfUpdate(currentVer)
-                    true
-                }
-                otherCategory.addPreference(this)
+                    summary = "v${BuildConfig.VERSION_NAME}"
+                    setOnPreferenceClickListener {
+                        // 触发版本检查和下载
+                        val versionCheckService = VersionCheckService()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            try {
+                                val latestVersion = versionCheckService.checkLatestVersion(requireContext())
+                                if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
+                                    // 启动下载
+                                    com.swupdater.service.DownloadService.start(
+                                        requireContext(),
+                                        latestVersion.downloadUrl,
+                                        latestVersion.versionName
+                                    )
+                                    Toast.makeText(requireContext(), "开始下载最新版本: ${latestVersion.versionName}", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
             }
 
             preferenceScreen = screen

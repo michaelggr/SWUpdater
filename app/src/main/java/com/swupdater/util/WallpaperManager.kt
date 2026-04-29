@@ -218,22 +218,21 @@ object WallpaperManager {
     // ========== 目录与缓存 ==========
 
     /**
-     * 获取壁纸缓存目录（公用 Pictures 目录）
-     * 路径: /sdcard/Pictures/SWUpdater/wallpapers
+     * 获取壁纸缓存目录（应用私有外部存储目录）
+     * 默认路径: /Android/data/<package>/files/Pictures/SWUpdater/wallpapers
      */
     @Suppress("UNUSED_PARAMETER")
     fun getWallpaperDir(context: Context): File {
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-            "SWUpdater/$WALLPAPER_DIR"
-        )
+        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            ?: File(context.filesDir, "Pictures")
+        val dir = File(baseDir, "SWUpdater/$WALLPAPER_DIR")
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
 
     /**
      * 获取壁纸下载保存目录（用户可自定义）
-     * 默认为公用 Download 目录: /sdcard/Download/SWUpdater/wallpapers
+     * 默认路径: /Android/data/<package>/files/Downloads/SWUpdater/wallpapers
      */
     fun getWallpaperDownloadDir(context: Context): File {
         val customPath = getPrefs(context).getString(PREF_CUSTOM_DOWNLOAD_DIR, null)
@@ -242,11 +241,9 @@ object WallpaperManager {
             if (!dir.exists()) dir.mkdirs()
             return dir
         }
-        // 默认：公用 Download/SWUpdater/wallpapers
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "SWUpdater/wallpapers"
-        )
+        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            ?: File(context.filesDir, "Downloads")
+        val dir = File(baseDir, "SWUpdater/wallpapers")
         if (!dir.exists()) dir.mkdirs()
         return dir
     }

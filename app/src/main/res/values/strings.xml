@@ -37,8 +37,8 @@
     <string name="integrity_fail">完整性校验失败，请重新下载</string>
 
     <!-- 设置 -->
-    <string name="pref_auto_check">自动检查更新</string>
-    <string name="pref_auto_check_summary">定期自动检查是否有新版本</string>
+    <string name="pref_auto_check_on_launch">打开APP时自动检测更新</string>
+    <string name="pref_auto_check_on_launch_summary">每次打开应用时自动检查是否有新版本</string>
     <string name="pref_check_interval">检查频率</string>
     <string name="pref_auto_download">自动下载</string>
     <string name="pref_auto_download_summary">发现新版本时自动下载</string>

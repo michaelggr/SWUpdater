@@ -101,6 +101,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyRandomWallpaper() {
+        binding.fabRandomWallpaper.isEnabled = false
+        Snackbar.make(binding.root, R.string.wallpaper_changing, Snackbar.LENGTH_SHORT).show()
+
         lifecycleScope.launch {
             try {
                 WallpaperManager.ensureDefaultWallpaper(this@MainActivity)
@@ -110,11 +113,19 @@ class MainActivity : AppCompatActivity() {
                         BitmapFactory.decodeFile(wallpaperFile.absolutePath)
                     }
                     if (bitmap != null) {
-                        showWallpaperBitmap(bitmap)
-                    }
+                    showWallpaperBitmap(bitmap)
+                    Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
+                } else {
+                    Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                }
+                } else {
+                    Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 AppLog.e("MainActivity", "更换壁纸失败: ${e.message}")
+                Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+            } finally {
+                binding.fabRandomWallpaper.isEnabled = true
             }
         }
     }
@@ -209,18 +220,19 @@ class MainActivity : AppCompatActivity() {
 
             if (!opened) {
                 try {
-                    val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-                    val targetDir = java.io.File(downloadDir, "SWUpdater/wallpapers")
-                    if (!targetDir.exists()) targetDir.mkdirs()
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        this@MainActivity,
+                        "${packageName}.fileprovider",
+                        dir
+                    )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(
-                            Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FSWUpdater%2Fwallpapers"),
-                            "vnd.android.document/directory"
-                        )
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        setDataAndType(uri, "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
-                    startActivity(intent)
-                    opened = true
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                        opened = true
+                    }
                 } catch (_: Exception) {}
             }
 
@@ -246,6 +258,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+<<<<<<< HEAD
             if (!opened) {
                 try {
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -486,10 +499,21 @@ class MainActivity : AppCompatActivity() {
                 permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
-        if (permissions.isNotEmpty()) permissionLauncher.launch(permissions.toTypedArray())
+
+        if (permissions.isNotEmpty()) {
+            permissionLauncher.launch(permissions.toTypedArray())
+        } else {
+            // 检查设置：是否在打开APP时自动检测更新
+            val prefs = getSharedPreferences("sw_updater_prefs", MODE_PRIVATE)
+            val autoCheckOnLaunch = prefs.getBoolean("pref_auto_check_on_launch", true)
+            if (autoCheckOnLaunch) {
+                viewModel.checkUpdate()
+            }
+        }
         else viewModel.checkUpdate()
     }
 
