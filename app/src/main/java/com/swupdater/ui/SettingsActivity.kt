@@ -2,6 +2,7 @@ package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
@@ -494,7 +495,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             val logText = AppLog.getLogText()
             val displayText = if (logText.isBlank()) "暂无日志，请先执行一次版本检查" else logText
 
-            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            AlertDialog.Builder(requireContext())
                 .setTitle("检测日志")
                 .setMessage(displayText)
                 .setPositiveButton("确定", null)
@@ -518,7 +519,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             val channelNames = channels.map { it.name }.toTypedArray()
             
-            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            AlertDialog.Builder(requireContext())
                 .setTitle("选择下载渠道")
                 .setItems(channelNames) { _, which ->
                     val selectedChannel = channels[which]
