@@ -402,10 +402,20 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             screen.addPreference(sourceCategory)
 
-            androidx.preference.EditTextPreference(context).apply {
+            androidx.preference.ListPreference(context).apply {
                 key = "pref_source_url"
                 title = getString(R.string.pref_source_url)
                 summary = VersionCheckService.DEFAULT_SOURCE_URL
+                entries = arrayOf(
+                    "友皆乐（官方推荐）",
+                    "备用1",
+                    "备用2"
+                )
+                entryValues = arrayOf(
+                    "https://play.qpyou.cn/b?i=8387&g=8109&gc=7976",
+                    "https://example.com/backup1", // 需要实际URL
+                    "https://example.com/backup2"  // 需要实际URL
+                )
                 setDefaultValue(VersionCheckService.DEFAULT_SOURCE_URL)
                 setOnPreferenceChangeListener { _, newValue ->
                     summary = newValue.toString()

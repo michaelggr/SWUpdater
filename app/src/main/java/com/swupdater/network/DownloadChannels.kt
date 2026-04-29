@@ -20,6 +20,36 @@ object DownloadChannels {
             isRecommended = true,
             requireVpn = false
         ),
+        // 华为应用市场代理
+        DownloadChannel(
+            id = "huawei",
+            name = "华为应用市场",
+            url = "https://app.hicloud.com/app/C100000000", // 示例，需要实际URL
+            type = DownloadChannel.ChannelType.CUSTOM,
+            description = "华为应用市场下载",
+            isRecommended = false,
+            requireVpn = false
+        ),
+        // 小米应用商店代理
+        DownloadChannel(
+            id = "xiaomi",
+            name = "小米应用商店",
+            url = "https://app.mi.com/details?id=com.com2us.smon", // 示例
+            type = DownloadChannel.ChannelType.CUSTOM,
+            description = "小米应用商店下载",
+            isRecommended = false,
+            requireVpn = false
+        ),
+        // 腾讯应用宝代理
+        DownloadChannel(
+            id = "tencent",
+            name = "腾讯应用宝",
+            url = "https://a.app.qq.com/o/simple.jsp?pkgname=com.com2us.smon", // 示例
+            type = DownloadChannel.ChannelType.CUSTOM,
+            description = "腾讯应用宝下载",
+            isRecommended = false,
+            requireVpn = false
+        ),
     )
 
     fun getRecommendedChannels(): List<DownloadChannel> {
