@@ -451,28 +451,32 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             Preference(context).apply {
                 key = "pref_version"
                 title = getString(R.string.pref_version)
-                    summary = "v${BuildConfig.VERSION_NAME}"
-                    setOnPreferenceClickListener {
-                        // 触发版本检查和下载
-                        val versionCheckService = VersionCheckService()
-                        CoroutineScope(Dispatchers.Main).launch {
-                            try {
-                                val latestVersion = versionCheckService.checkLatestVersion(requireContext())
-                                if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
-                                    // 启动下载
-                                    com.swupdater.service.DownloadService.start(
-                                        requireContext(),
-                                        latestVersion.downloadUrl,
-                                        latestVersion.versionName
-                                    )
-                                    Toast.makeText(requireContext(), "开始下载最新版本: ${latestVersion.versionName}", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
-                                }
-                            } catch (e: Exception) {
-                                Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                summary = "v${BuildConfig.VERSION_NAME}"
+                isSelectable = true
+                setOnPreferenceClickListener {
+                    // 触发版本检查和下载
+                    val versionCheckService = VersionCheckService()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        try {
+                            val latestVersion = versionCheckService.checkLatestVersion(requireContext())
+                            if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
+                                // 启动下载
+                                com.swupdater.service.DownloadService.start(
+                                    requireContext(),
+                                    latestVersion.downloadUrl,
+                                    latestVersion.versionName
+                                )
+                                Toast.makeText(requireContext(), "开始下载最新版本: ${latestVersion.versionName}", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
                             }
+                        } catch (e: Exception) {
+                            Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
+                    }
+                    true
+                }
+                otherCategory.addPreference(this)
             }
 
             preferenceScreen = screen
