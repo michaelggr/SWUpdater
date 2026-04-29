@@ -9,7 +9,7 @@
 
     <!-- 壁纸背景层（fitCenter 完整显示横版壁纸，不裁剪） -->
     <ImageView
-        android:id="@+id/iv_wallpaper"
+        android:id="@+id/iv_wallpaper_background"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="fitCenter"
