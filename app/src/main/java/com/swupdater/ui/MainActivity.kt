@@ -258,7 +258,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-<<<<<<< HEAD
             if (!opened) {
                 try {
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -514,7 +513,6 @@ class MainActivity : AppCompatActivity() {
                 viewModel.checkUpdate()
             }
         }
-        else viewModel.checkUpdate()
     }
 
     private fun checkNetworkPermission(): Boolean {
