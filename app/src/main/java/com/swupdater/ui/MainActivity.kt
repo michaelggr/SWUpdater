@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyRandomWallpaper() {
-        binding.fabRandomWallpaper.isEnabled = false
+        binding.btnRandomWallpaper.isEnabled = false
         Snackbar.make(binding.root, R.string.wallpaper_changing, Snackbar.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
                 AppLog.e("MainActivity", "更换壁纸失败: ${e.message}")
                 Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
             } finally {
-                binding.fabRandomWallpaper.isEnabled = true
+                binding.btnRandomWallpaper.isEnabled = true
             }
         }
     }
