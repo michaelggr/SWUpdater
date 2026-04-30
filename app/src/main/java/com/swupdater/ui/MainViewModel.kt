@@ -1,4 +1,4 @@
-﻿﻿package com.swupdater.ui
+package com.swupdater.ui
 
 import android.app.Application
 import android.content.Intent

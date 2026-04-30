@@ -1,4 +1,4 @@
-﻿﻿package com.swupdater.receiver
+package com.swupdater.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context

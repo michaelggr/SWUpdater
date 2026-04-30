@@ -1,4 +1,4 @@
-﻿﻿package com.swupdater.ui
+package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast

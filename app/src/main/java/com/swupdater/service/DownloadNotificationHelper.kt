@@ -1,4 +1,4 @@
-﻿﻿package com.swupdater.service
+package com.swupdater.service
 
 import android.app.Notification
 import android.app.NotificationChannel

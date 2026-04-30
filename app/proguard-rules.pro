@@ -1,4 +1,4 @@
-﻿﻿# Add project specific ProGuard rules here.
+# Add project specific ProGuard rules here.
 
 # OkHttp
 -dontwarn okhttp3.**
