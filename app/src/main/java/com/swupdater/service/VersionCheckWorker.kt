@@ -189,8 +189,8 @@ class VersionCheckWorker(
 
         val notification = androidx.core.app.NotificationCompat.Builder(applicationContext, "update_channel")
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle(context.getString(R.string.notification_update_found))
-            .setContentText(context.getString(R.string.notification_update_text, latestVersion, currentVersion ?: "未安装"))
+            .setContentTitle(applicationContext.getString(R.string.notification_update_found))
+            .setContentText(applicationContext.getString(R.string.notification_update_text, latestVersion, currentVersion ?: "未安装"))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
