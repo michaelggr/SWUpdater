@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast
@@ -464,26 +464,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "v${BuildConfig.VERSION_NAME}"
                 isSelectable = true
                 setOnPreferenceClickListener {
-                    // 触发版本检查和下载
-                    val versionCheckService = VersionCheckService()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        try {
-                            val latestVersion = versionCheckService.checkLatestVersion(requireContext())
-                            if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
-                                // 启动下载
-                                com.swupdater.service.DownloadService.start(
-                                    requireContext(),
-                                    latestVersion.downloadUrl,
-                                    latestVersion.versionName
-                                )
-                                Toast.makeText(requireContext(), "开始下载最新版本: ${latestVersion.versionName}", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    // 检查 SWUpdater 应用自身的更新
+                    checkSelfUpdate(BuildConfig.VERSION_NAME)
                     true
                 }
                 otherCategory.addPreference(this)
@@ -510,7 +492,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         /**
          * 检查本应用自身是否有新版本
-         * 从 GitHub Release 获取最新版本号，与当前版本对比
+         * 从 GitHub Release 获取最新版本号和 APK 下载链接，直接下载
          * 支持 GitHub API 镜像加速，国内可用
          */
         private fun checkSelfUpdate(currentVersion: String) {
@@ -520,7 +502,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val result = withContext(Dispatchers.IO) {
-                        // GitHub API 镜像列表（原版 + 国内加速），依次尝试
                         val apiMirrors = listOf(
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
@@ -551,14 +532,28 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                                 val json = com.google.gson.JsonParser.parseString(body).asJsonObject
                                 val tagName = json.get("tag_name")?.asString ?: continue
-                                // 同时提取下载页 URL（优先镜像）
-                                val htmlUrl = json.get("html_url")?.asString
-                                return@withContext tagName.removePrefix("v") to htmlUrl
+                                val versionName = tagName.removePrefix("v")
+
+                                // 提取 APK 下载链接
+                                var apkUrl = ""
+                                val assets = json.get("assets")?.asJsonArray
+                                if (assets != null) {
+                                    for (asset in assets) {
+                                        val assetObj = asset.asJsonObject
+                                        val name = assetObj.get("name")?.asString ?: ""
+                                        if (name.endsWith(".apk", ignoreCase = true)) {
+                                            apkUrl = assetObj.get("browser_download_url")?.asString ?: ""
+                                            break
+                                        }
+                                    }
+                                }
+
+                                return@withContext Triple(versionName, apkUrl, url)
                             } catch (_: Exception) {
-                                continue // 当前镜像失败，尝试下一个
+                                continue
                             }
                         }
-                        null // 所有镜像都失败
+                        null
                     }
 
                     if (result == null) {
@@ -567,14 +562,24 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                         return@launch
                     }
 
-                    val (latestVersion, releaseUrl) = result
+                    val (latestVersion, apkUrl, _) = result
 
                     if (latestVersion != currentVersion) {
-                        // 有新版本
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-                        showUpdateDialog(currentVersion, latestVersion, releaseUrl)
+
+                        if (apkUrl.isNotEmpty()) {
+                            // 直接下载 APK
+                            com.swupdater.service.DownloadService.start(
+                                requireContext(),
+                                apkUrl,
+                                latestVersion
+                            )
+                            Toast.makeText(requireContext(), "开始下载 SWUpdater v$latestVersion", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // 获取不到 APK 直链，显示选择对话框
+                            showUpdateDialog(currentVersion, latestVersion, null)
+                        }
                     } else {
-                        // 已是最新
                         pref?.summary = "v$currentVersion（已是最新版本）"
                         Toast.makeText(requireContext(), "当前已是最新版本 v$currentVersion", Toast.LENGTH_SHORT).show()
                     }
