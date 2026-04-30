@@ -1,8 +1,7 @@
-﻿package com.swupdater.ui
+package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
@@ -11,8 +10,6 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.swupdater.BuildConfig
 import com.swupdater.R
-import com.swupdater.model.DownloadChannel
-import com.swupdater.model.VersionInfo
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
@@ -467,19 +464,24 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "v${BuildConfig.VERSION_NAME}"
                 isSelectable = true
                 setOnPreferenceClickListener {
-                    // 触发版本检查
+                    // 触发版本检查和下载
                     val versionCheckService = VersionCheckService()
                     CoroutineScope(Dispatchers.Main).launch {
                         try {
                             val latestVersion = versionCheckService.checkLatestVersion(requireContext())
                             if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
-                                // 显示下载渠道选择对话框
-                                showDownloadChannelDialog(latestVersion)
+                                // 启动下载
+                                com.swupdater.service.DownloadService.start(
+                                    requireContext(),
+                                    latestVersion.downloadUrl,
+                                    latestVersion.versionName
+                                )
+                                Toast.makeText(requireContext(), "开始下载最新版本: ${latestVersion.versionName}", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(requireContext(), "检查版本失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                     true
@@ -494,7 +496,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             val logText = AppLog.getLogText()
             val displayText = if (logText.isBlank()) "暂无日志，请先执行一次版本检查" else logText
 
-            AlertDialog.Builder(requireContext())
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("检测日志")
                 .setMessage(displayText)
                 .setPositiveButton("确定", null)
@@ -504,54 +506,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     Toast.makeText(requireContext(), "日志已复制到剪贴板", Toast.LENGTH_SHORT).show()
                 }
                 .show()
-        }
-
-        /**
-         * 显示下载渠道选择对话框
-         */
-        private fun showDownloadChannelDialog(latestVersion: VersionInfo) {
-            val channels = latestVersion.downloadChannels
-            if (channels.isEmpty()) {
-                Toast.makeText(requireContext(), "没有可用的下载渠道", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            val channelNames = channels.map { it.name }.toTypedArray()
-            
-            AlertDialog.Builder(requireContext())
-                .setTitle("选择下载渠道")
-                .setItems(channelNames) { _, which ->
-                    val selectedChannel = channels[which]
-                    startDownload(latestVersion, selectedChannel)
-                }
-                .show()
-        }
-
-        /**
-         * 根据选择的渠道开始下载
-         */
-        private fun startDownload(versionInfo: VersionInfo, channel: DownloadChannel) {
-            when (channel.type) {
-                DownloadChannel.ChannelType.APK_DIRECT -> {
-                    // 直接下载APK
-                    com.swupdater.service.DownloadService.start(
-                        requireContext(),
-                        versionInfo.downloadUrl,
-                        versionInfo.versionName
-                    )
-                    Toast.makeText(requireContext(), "从『${channel.name}』开始下载最新版本: ${versionInfo.versionName}", Toast.LENGTH_SHORT).show()
-                }
-                DownloadChannel.ChannelType.CUSTOM -> {
-                    // 打开渠道URL（应用市场等）
-                    try {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(channel.url))
-                        requireActivity().startActivity(intent)
-                        Toast.makeText(requireContext(), "打开『${channel.name}』", Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(requireContext(), "打开渠道失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
         }
 
         /**
