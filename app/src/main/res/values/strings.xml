@@ -142,4 +142,5 @@
     <string name="notification_preparing_download">准备下载…</string>
     <string name="notification_update_found">魔灵召唤 - 发现新版本</string>
     <string name="notification_update_text">最新版本: %1$s (当前: %2$s)</string>
+    <string name="dialog_download_version">版本 %1$s</string>
 </resources>

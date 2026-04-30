@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.swupdater.R
 import com.swupdater.databinding.ActivityMainBinding
+import com.swupdater.databinding.DialogDownloadProgressBinding
 import com.swupdater.model.*
 import com.swupdater.util.AppLog
 import com.swupdater.util.FileUtil
@@ -31,6 +32,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
+
+    private var downloadDialog: AlertDialog? = null
+    private var dialogBinding: DialogDownloadProgressBinding? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -355,7 +359,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnCheckUpdate.setOnClickListener {
             if (checkNetworkPermission()) viewModel.checkUpdate()
         }
-        binding.btnDownload.setOnClickListener { viewModel.startDownload() }
+        binding.btnDownload.setOnClickListener {
+            showDownloadDialog()
+            viewModel.startDownload()
+        }
         binding.btnOpenStore.setOnClickListener { viewModel.startDownload() }
         binding.btnStopDownload.setOnClickListener { viewModel.cancelDownload() }
         binding.btnInstall.setOnClickListener { attemptInstall() }
@@ -437,36 +444,42 @@ class MainActivity : AppCompatActivity() {
                             FileUtil.formatFileSize(progress.totalBytes))
                         binding.tvDownloadSpeed.text = FileUtil.formatSpeed(progress.speed)
                         binding.tvVerifyStatus.visibility = View.GONE
+                        updateDownloadDialog(progress)
                     }
                     DownloadState.DOWNLOADED -> {
                         binding.tvDownloadTitle.text = getString(R.string.status_downloaded)
                         binding.btnStopDownload.visibility = View.GONE
                         binding.progressDownload.progress = 100
+                        updateDownloadDialog(progress)
                     }
                     DownloadState.VERIFYING -> {
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.verifying_integrity)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.info))
+                        updateDownloadDialog(progress)
                     }
                     DownloadState.VERIFIED -> {
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.integrity_pass)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.success))
                         binding.btnInstall.visibility = View.VISIBLE
-                        showInstallDialog()
+                        updateDownloadDialog(progress)
                     }
                     DownloadState.VERIFY_FAILED -> {
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.integrity_fail)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.error))
+                        updateDownloadDialog(progress)
                     }
                     DownloadState.INSTALLING -> {
                         binding.tvStatus.text = getString(R.string.status_installing)
+                        dismissDownloadDialog()
                     }
                     DownloadState.FAILED -> {
                         binding.tvStatus.text = getString(R.string.status_error)
                         binding.viewStatusDot.backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.error)
                         binding.tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.error))
+                        updateDownloadDialog(progress)
                     }
                     else -> {}
                 }
@@ -478,6 +491,88 @@ class MainActivity : AppCompatActivity() {
                 binding.btnCheckUpdate.isEnabled = !isChecking
             }
         }
+    }
+
+    private fun showDownloadDialog() {
+        if (downloadDialog?.isShowing == true) return
+
+        val db = DialogDownloadProgressBinding.inflate(layoutInflater)
+        dialogBinding = db
+
+        val latest = viewModel.latestVersion.value
+        db.tvDialogDownloadVersion.text = if (latest != null) {
+            getString(R.string.dialog_download_version, latest.versionName)
+        } else {
+            ""
+        }
+        db.btnDialogInstall.visibility = View.GONE
+        db.tvDialogVerifyStatus.visibility = View.GONE
+        db.btnDialogCancel.setOnClickListener {
+            viewModel.cancelDownload()
+            dismissDownloadDialog()
+        }
+        db.btnDialogInstall.setOnClickListener {
+            attemptInstall()
+        }
+
+        downloadDialog = AlertDialog.Builder(this)
+            .setView(db.root)
+            .setCancelable(false)
+            .create()
+        downloadDialog?.show()
+    }
+
+    private fun updateDownloadDialog(progress: DownloadProgress) {
+        val db = dialogBinding ?: return
+        when (progress.state) {
+            DownloadState.DOWNLOADING -> {
+                db.progressDialogDownload.progress = progress.progressPercent
+                db.tvDialogDownloadSize.text = String.format("%s / %s",
+                    FileUtil.formatFileSize(progress.downloadedBytes),
+                    FileUtil.formatFileSize(progress.totalBytes))
+                db.tvDialogDownloadSpeed.text = FileUtil.formatSpeed(progress.speed)
+                db.tvDialogVerifyStatus.visibility = View.GONE
+                db.btnDialogInstall.visibility = View.GONE
+                db.btnDialogCancel.text = getString(R.string.cancel)
+            }
+            DownloadState.DOWNLOADED -> {
+                db.progressDialogDownload.progress = 100
+                db.tvDialogDownloadSize.text = String.format("%s / %s",
+                    FileUtil.formatFileSize(progress.downloadedBytes),
+                    FileUtil.formatFileSize(progress.totalBytes))
+                db.tvDialogDownloadSpeed.text = ""
+            }
+            DownloadState.VERIFYING -> {
+                db.tvDialogVerifyStatus.visibility = View.VISIBLE
+                db.tvDialogVerifyStatus.text = getString(R.string.verifying_integrity)
+                db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.info))
+            }
+            DownloadState.VERIFIED -> {
+                db.tvDialogVerifyStatus.visibility = View.VISIBLE
+                db.tvDialogVerifyStatus.text = getString(R.string.integrity_pass)
+                db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
+                db.btnDialogInstall.visibility = View.VISIBLE
+                db.btnDialogCancel.text = getString(R.string.dialog_btn_later)
+                db.tvDialogDownloadTitle.text = getString(R.string.status_downloaded)
+            }
+            DownloadState.VERIFY_FAILED -> {
+                db.tvDialogVerifyStatus.visibility = View.VISIBLE
+                db.tvDialogVerifyStatus.text = getString(R.string.integrity_fail)
+                db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
+                db.btnDialogCancel.text = getString(R.string.ok)
+            }
+            DownloadState.FAILED -> {
+                db.tvDialogDownloadTitle.text = getString(R.string.status_error)
+                db.btnDialogCancel.text = getString(R.string.ok)
+            }
+            else -> {}
+        }
+    }
+
+    private fun dismissDownloadDialog() {
+        downloadDialog?.dismiss()
+        downloadDialog = null
+        dialogBinding = null
     }
 
     private fun showInstallDialog() {
