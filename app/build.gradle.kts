@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -17,7 +17,7 @@ android {
         applicationId = "com.swupdater"
         minSdk = 24
         targetSdk = 34
-        versionCode = versionCodeProp
+        versionCode = versionCodeProp ?: 3
         versionName = versionNameProp
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
