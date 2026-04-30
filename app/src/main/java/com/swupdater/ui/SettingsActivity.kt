@@ -525,7 +525,11 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://gh-proxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
-                            "https://mirror.ghproxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest"
+                            "https://mirror.ghproxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://api.kgithub.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://hub.fastgit.xyz/michaelggr/SWUpdater/releases/latest",
+                            "https://gitclone.com/api/github.com/repos/michaelggr/SWUpdater/releases/latest",
+                            "https://gh.jianmu.dev/api.github.com/repos/michaelggr/SWUpdater/releases/latest"
                         )
 
                         val client = okhttp3.OkHttpClient.Builder()
@@ -591,7 +595,10 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 "GitHub（原版）" to "https://github.com/michaelggr/SWUpdater/releases/latest",
                 "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
                 "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest"
+                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "kgithub 加速" to "https://kgithub.com/michaelggr/SWUpdater/releases/latest",
+                "FastGit 加速" to "https://hub.fastgit.xyz/michaelggr/SWUpdater/releases",
+                "GitClone 加速" to "https://gitclone.com/github.com/michaelggr/SWUpdater/releases/latest"
             )
 
             val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
