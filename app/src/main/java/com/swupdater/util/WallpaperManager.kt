@@ -232,7 +232,7 @@ object WallpaperManager {
 
     /**
      * 获取壁纸下载保存目录（用户可自定义）
-     * 默认路径: /Android/data/<package>/files/Downloads/SWUpdater/wallpapers
+     * 默认路径: /sdcard/Download/SWUpdater/wallpapers（公共目录，文件管理器可见）
      */
     fun getWallpaperDownloadDir(context: Context): File {
         val customPath = getPrefs(context).getString(PREF_CUSTOM_DOWNLOAD_DIR, null)
@@ -241,9 +241,10 @@ object WallpaperManager {
             if (!dir.exists()) dir.mkdirs()
             return dir
         }
-        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-            ?: File(context.filesDir, "Downloads")
-        val dir = File(baseDir, "SWUpdater/wallpapers")
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/wallpapers"
+        )
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
