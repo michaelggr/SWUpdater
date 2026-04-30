@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.*
+import com.swupdater.R
 import com.swupdater.model.AppInstallInfo
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppInfoUtil
