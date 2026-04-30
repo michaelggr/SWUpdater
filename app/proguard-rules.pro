@@ -1,4 +1,4 @@
-# Add project specific ProGuard rules here.
+﻿# Add project specific ProGuard rules here.
 
 # OkHttp
 -dontwarn okhttp3.**
@@ -6,6 +6,7 @@
 
 # Jsoup
 -keep class org.jsoup.** { *; }
+-dontwarn org.jspecify.annotations.**
 
 # Gson
 -keepattributes Signature
