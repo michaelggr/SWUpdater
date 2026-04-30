@@ -6,8 +6,8 @@ plugins {
 // ========== 版本号（支持 CI 参数注入） ==========
 // CI 环境通过 -PversionName=x.x.x -PversionCode=xxx 注入
 // 本地开发使用 gradle.properties 中的默认值
-val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "1.7.1" }
-val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 3
+val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "1.0.0" }
+val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 1
 
 android {
     namespace = "com.swupdater"
@@ -17,10 +17,8 @@ android {
         applicationId = "com.swupdater"
         minSdk = 24
         targetSdk = 34
-        versionCode = versionCodeProp ?: 3
+        versionCode = versionCodeProp
         versionName = versionNameProp
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // ========== 签名配置 ==========
@@ -47,7 +45,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -63,12 +61,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -79,7 +77,7 @@ android {
     // lint 配置
     lint {
         abortOnError = false
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
     }
 }
 
