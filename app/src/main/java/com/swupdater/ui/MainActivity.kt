@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.Manifest
 import android.content.ComponentName
@@ -218,15 +218,12 @@ class MainActivity : AppCompatActivity() {
 
             var opened = false
 
+            // 方式1: 使用 ACTION_VIEW 打开目录（需要 DocumentsContract 支持）
             if (!opened) {
                 try {
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity,
-                        "${packageName}.fileprovider",
-                        dir
-                    )
+                    val uri = android.provider.MediaStore.Files.getContentUri("external")
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "*/*")
+                        setDataAndType(uri, "vnd.android.document/directory")
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     if (intent.resolveActivity(packageManager) != null) {
@@ -236,19 +233,55 @@ class MainActivity : AppCompatActivity() {
                 } catch (_: Exception) {}
             }
 
+            // 方式2: 使用系统文件管理器浏览目录
             if (!opened) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(
+                            android.net.Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload"),
+                            "vnd.android.document/directory"
+                        )
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                        opened = true
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 方式3: 打开各品牌文件管理器并尝试导航到目录
+            if (!opened) {
+                val dirPath = dir.absolutePath
                 val fileManagers = listOf(
-                    "com.google.android.apps.nbu.files" to "com.google.android.apps.nbu.files.home.HomeActivity",
-                    "com.sec.android.app.myfiles" to "com.sec.android.app.myfiles.common.MainActivity",
-                    "com.huawei.hidisk" to "com.huawei.hidisk.HomeActivity",
-                    "com.xiaomi.fileexplorer" to "com.xiaomi.fileexplorer.FileExplorerActivity",
-                    "com.oppo.filemanager" to "com.coloros.filemanager.main.MainActivity",
-                    "com.vivo.filemanager" to "com.vivo.filemanager.activity.MainActivity"
+                    Triple(
+                        "com.google.android.apps.nbu.files",
+                        "com.google.android.apps.nbu.files.home.HomeActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.sec.android.app.myfiles",
+                        "com.sec.android.app.myfiles.common.MainActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.huawei.hidisk",
+                        "com.huawei.hidisk.HomeActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.xiaomi.fileexplorer",
+                        "com.xiaomi.fileexplorer.FileExplorerActivity",
+                        dirPath
+                    )
                 )
-                for ((pkg, activity) in fileManagers) {
+                for ((pkg, activity, path) in fileManagers) {
                     try {
                         val intent = Intent().apply {
                             component = ComponentName(pkg, activity)
+                            putExtra("dir_path", path)
+                            putExtra("folder_path", path)
+                            putExtra("current_dir", path)
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         startActivity(intent)
@@ -258,27 +291,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            if (!opened) {
-                try {
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "image/*"
-                        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "image/webp"))
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    startActivity(intent)
-                    opened = true
-                } catch (_: Exception) {}
-            }
-
-            if (!opened) {
-                Snackbar.make(binding.root, "壁纸目录: ${dir.absolutePath}", Snackbar.LENGTH_LONG)
-                    .setAction("复制路径") {
-                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("壁纸目录", dir.absolutePath))
-                        Toast.makeText(this@MainActivity, "路径已复制", Toast.LENGTH_SHORT).show()
-                    }.show()
-            }
+            // 所有方式都失败时，显示路径并支持复制
+            Snackbar.make(binding.root, "壁纸目录: ${dir.absolutePath}", Snackbar.LENGTH_LONG)
+                .setAction("复制路径") {
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("壁纸目录", dir.absolutePath))
+                    Toast.makeText(this@MainActivity, "路径已复制", Toast.LENGTH_SHORT).show()
+                }.show()
         } catch (e: Exception) {
             AppLog.e("MainActivity", "打开目录失败: ${e.message}")
             Snackbar.make(binding.root, "无法打开目录: ${e.message}", Snackbar.LENGTH_SHORT).show()
