@@ -1,4 +1,4 @@
-﻿package com.swupdater.util
+﻿﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.SharedPreferences

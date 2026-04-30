@@ -1,4 +1,4 @@
-﻿package com.swupdater.util
+﻿﻿package com.swupdater.util
 
 import java.io.File
 import java.io.FileInputStream

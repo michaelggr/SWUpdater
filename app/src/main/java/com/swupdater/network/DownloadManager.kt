@@ -1,4 +1,4 @@
-﻿package com.swupdater.network
+﻿﻿package com.swupdater.network
 
 import android.util.Log
 import com.swupdater.model.DownloadProgress
