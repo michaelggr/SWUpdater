@@ -513,7 +513,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             "https://gh.jianmu.dev/api.github.com/repos/michaelggr/SWUpdater/releases/latest"
                         )
 
-                        val client = okhttp3.OkHttpClient.Builder()
+                        val client = com.swupdater.network.DownloadManager.client.newBuilder()
                             .connectTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
                             .readTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
                             .build()
@@ -564,7 +564,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                     val (latestVersion, apkUrl, _) = result
 
-                    if (latestVersion != currentVersion) {
+                    if (AppInfoUtil.isNewerVersion(latestVersion, currentVersion)) {
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
 
                         if (apkUrl.isNotEmpty()) {

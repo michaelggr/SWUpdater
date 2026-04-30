@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.util.Log
 import java.io.BufferedReader
@@ -72,14 +72,13 @@ object RootInstallHelper {
             val exitCode = process.waitFor()
             Log.i(TAG, "安装结果: exitCode=$exitCode, output=$output, error=$error")
 
-            // pm install 成功时输出 "Success"
-            if (output.contains("Success", ignoreCase = true) || exitCode == 0) {
+            if (output.contains("Success", ignoreCase = true)) {
                 AppLog.i(TAG, "Root 静默安装成功: $apkPath")
                 InstallResult(true, "安装成功")
             } else {
-                val msg = error.ifEmpty { output }
+                val msg = if (exitCode != 0) "exitCode=$exitCode, ${error.ifEmpty { output }}" else error.ifEmpty { output }
                 AppLog.e(TAG, "Root 静默安装失败: $msg")
-                InstallResult(false, msg)
+                InstallResult(false, msg.ifEmpty { "安装失败 (exitCode=$exitCode)" })
             }
         } catch (e: Exception) {
             Log.e(TAG, "Root 静默安装异常", e)

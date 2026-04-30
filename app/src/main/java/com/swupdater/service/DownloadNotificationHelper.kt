@@ -1,4 +1,4 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -92,7 +92,7 @@ object DownloadNotificationHelper {
             DownloadState.INSTALLING -> {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setContentTitle(context.getString(R.string.download_notification_title))
-                    .setContentText("正在安装更新...")
+                    .setContentText(context.getString(R.string.notification_installing))
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setProgress(100, 100, true)
                     .setOngoing(true)
@@ -136,7 +136,7 @@ object DownloadNotificationHelper {
             DownloadState.FAILED, DownloadState.VERIFY_FAILED -> {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setContentTitle(context.getString(R.string.download_notification_title))
-                    .setContentText("下载失败，请重试")
+                    .setContentText(context.getString(R.string.notification_download_failed))
                     .setSmallIcon(android.R.drawable.stat_notify_error)
                     .setProgress(0, 0, false)
                     .setOngoing(false)
@@ -171,7 +171,7 @@ object DownloadNotificationHelper {
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(context.getString(R.string.download_notification_title))
-            .setContentText("准备下载...")
+            .setContentText(context.getString(R.string.notification_preparing_download))
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, 0, true)
             .setOngoing(true)
@@ -223,7 +223,7 @@ object DownloadNotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(context.getString(R.string.download_notification_title))
-            .setContentText("自动安装失败${if (!error.isNullOrEmpty()) ": $error" else ""}")
+            .setContentText(context.getString(R.string.notification_auto_install_failed, if (!error.isNullOrEmpty()) ": $error" else ""))
             .setSmallIcon(android.R.drawable.stat_notify_error)
             .setProgress(0, 0, false)
             .setOngoing(false)

@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.os.Build
@@ -31,7 +31,18 @@ object FileUtil {
      * 获取 APK 下载目标文件
      */
     fun getApkFile(context: Context, versionName: String): File {
-        return File(getDownloadDir(context), "summoners_war_${versionName}.apk")
+        val dir = getDownloadDir(context)
+        val baseName = "summoners_war_${versionName}.apk"
+        var target = File(dir, baseName)
+        if (!target.exists()) return target
+        val nameWithoutExt = baseName.substringBeforeLast(".")
+        val ext = baseName.substringAfterLast(".", "apk")
+        var index = 1
+        while (target.exists()) {
+            target = File(dir, "${nameWithoutExt}_$index.$ext")
+            index++
+        }
+        return target
     }
 
     /**

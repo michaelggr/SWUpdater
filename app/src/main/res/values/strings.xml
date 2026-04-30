@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">魔灵召唤 · 自动更新</string>
     <string name="settings_title">设置</string>
@@ -135,4 +135,11 @@
     <string name="keep_alive_notification_channel">后台保活</string>
     <string name="keep_alive_notification_title">魔灵召唤 · 自动更新</string>
     <string name="keep_alive_notification_text">正在后台运行，自动检查更新</string>
+
+    <string name="notification_installing">正在安装更新…</string>
+    <string name="notification_download_failed">下载失败，请重试</string>
+    <string name="notification_auto_install_failed">自动安装失败%1$s</string>
+    <string name="notification_preparing_download">准备下载…</string>
+    <string name="notification_update_found">魔灵召唤 - 发现新版本</string>
+    <string name="notification_update_text">最新版本: %1$s (当前: %2$s)</string>
 </resources>

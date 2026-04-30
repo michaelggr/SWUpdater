@@ -1,4 +1,4 @@
-package com.swupdater.receiver
+﻿package com.swupdater.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -39,16 +39,10 @@ class BootReceiver : BroadcastReceiver() {
             Log.i(TAG, "已调度自动检查任务，间隔: ${intervalHours}小时")
         }
 
-        // 2. 保活服务
-        if (KeepAliveService.isEnabled(context)) {
+        // 2. 保活服务（保活启用 或 开机自启启用时启动）
+        if (KeepAliveService.isEnabled(context) || KeepAliveService.isBootAutoStartEnabled(context)) {
             KeepAliveService.start(context)
             Log.i(TAG, "已启动保活服务")
-        }
-
-        // 3. 开机自启（即使未开启保活，如果设置了开机自启也启动检查）
-        if (KeepAliveService.isBootAutoStartEnabled(context)) {
-            KeepAliveService.start(context)
-            Log.i(TAG, "开机自启已启用，启动保活服务")
         }
     }
 }

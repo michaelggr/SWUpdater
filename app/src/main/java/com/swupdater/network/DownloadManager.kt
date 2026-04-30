@@ -1,4 +1,4 @@
-package com.swupdater.network
+﻿package com.swupdater.network
 
 import android.util.Log
 import com.swupdater.model.DownloadProgress
@@ -46,7 +46,7 @@ object DownloadManager {
         }
     }
 
-    private val client: OkHttpClient by lazy {
+    internal val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .dns(Ipv4PreferredDns())
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -207,11 +207,15 @@ object DownloadManager {
         } catch (e: CancellationException) {
             _progress.value = DownloadProgress(state = DownloadState.IDLE)
             Log.i(TAG, "下载被取消")
+            if (targetFile.exists()) {
+                targetFile.delete()
+                Log.i(TAG, "已清理下载临时文件")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "下载失败: ${e.message}", e)
-            // 下载失败时删除空文件
-            if (targetFile.exists() && targetFile.length() == 0L) {
+            if (targetFile.exists()) {
                 targetFile.delete()
+                Log.i(TAG, "已清理下载临时文件")
             }
             _progress.value = DownloadProgress(
                 state = DownloadState.FAILED,

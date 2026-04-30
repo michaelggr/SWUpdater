@@ -1,4 +1,4 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -343,9 +343,10 @@ class KeepAliveService : Service() {
             try {
                 // 续期 WakeLock
                 wakeLock?.let {
-                    if (!it.isHeld) {
-                        it.acquire(6 * 60 * 60 * 1000L)
+                    if (it.isHeld) {
+                        it.release()
                     }
+                    it.acquire(6 * 60 * 60 * 1000L)
                 }
 
                 // 更新通知

@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 object WallpaperManager {
 
     private const val TAG = "WallpaperManager"
-    private const val PREFS_NAME = "wallpaper_prefs"
+    private const val PREFS_NAME = "sw_updater_prefs"
     private const val PREF_AUTO_CHANGE = "pref_auto_change_wallpaper"
     private const val PREF_CURRENT_WALLPAPER = "pref_current_wallpaper"
     private const val PREF_WALLPAPER_SOURCE = "pref_wallpaper_source"

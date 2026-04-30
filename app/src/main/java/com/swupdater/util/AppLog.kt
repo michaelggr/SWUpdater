@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -7,6 +7,7 @@ import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * 应用日志工具
@@ -23,7 +24,7 @@ object AppLog {
 
     // 内存日志缓冲
     private val buffer = mutableListOf<LogEntry>()
-    private val listeners = mutableListOf<(LogEntry) -> Unit>()
+    private val listeners = CopyOnWriteArrayList<(LogEntry) -> Unit>()
 
     data class LogEntry(
         val timestamp: Long,
@@ -90,6 +91,7 @@ object AppLog {
             buffer.add(entry)
             if (buffer.size > MAX_LOG_ENTRIES) {
                 buffer.removeAt(0)
+                if (lastFlushIndex > 0) lastFlushIndex--
             }
         }
 
@@ -107,24 +109,30 @@ object AppLog {
      */
     fun getLogText(): String = getLogs().joinToString("\n") { it.toString() }
 
-    /**
-     * 清除内存日志
-     */
-    fun clear() = synchronized(buffer) { buffer.clear() }
+    private var lastFlushIndex = 0
 
-    /**
-     * 将日志写入文件
-     */
     fun flushToFile(context: Context) {
         val logFile = File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME)
         logFile.parentFile?.mkdirs()
         try {
+            val logsToWrite = synchronized(buffer) {
+                if (lastFlushIndex >= buffer.size) return@synchronized emptyList<LogEntry>()
+                buffer.subList(lastFlushIndex, buffer.size).also {
+                    lastFlushIndex = buffer.size
+                }
+            }
+            if (logsToWrite.isEmpty()) return
             PrintWriter(FileWriter(logFile, true)).use { writer ->
-                getLogs().forEach { writer.println(it.toString()) }
+                logsToWrite.forEach { writer.println(it.toString()) }
             }
         } catch (e: Exception) {
             android.util.Log.e("AppLog", "写入日志文件失败", e)
         }
+    }
+
+    fun clear() = synchronized(buffer) {
+        buffer.clear()
+        lastFlushIndex = 0
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -74,6 +74,8 @@ class VersionCheckWorker(
         /**
          * 执行一次性检查
          */
+        const val ONE_TIME_WORK_NAME = "version_check_onetime"
+
         fun scheduleOneTimeCheck(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -83,7 +85,11 @@ class VersionCheckWorker(
                 .setConstraints(constraints)
                 .build()
 
-            WorkManager.getInstance(context).enqueue(oneTimeWork)
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                ONE_TIME_WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                oneTimeWork
+            )
         }
     }
 
@@ -183,8 +189,8 @@ class VersionCheckWorker(
 
         val notification = androidx.core.app.NotificationCompat.Builder(applicationContext, "update_channel")
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("魔灵召唤 - 发现新版本")
-            .setContentText("最新版本: $latestVersion (当前: ${currentVersion ?: "未安装"})")
+            .setContentTitle(context.getString(R.string.notification_update_found))
+            .setContentText(context.getString(R.string.notification_update_text, latestVersion, currentVersion ?: "未安装"))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
