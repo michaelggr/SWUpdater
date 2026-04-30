@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast
@@ -21,7 +21,6 @@ import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withContext
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
