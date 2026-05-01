@@ -72,14 +72,14 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_dialog_cancel"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/cancel" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_dialog_install"
-            style="@style/Widget.Material3.Button.FilledButton"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/btn_install"
