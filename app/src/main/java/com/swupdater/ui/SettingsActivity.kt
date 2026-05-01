@@ -584,7 +584,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         private fun showSelfUpdateDialog(currentVersion: String, latestVersion: String, apkUrl: String?) {
-            selfUpdateDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            val builder = androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("发现新版本")
                 .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n是否立即下载更新？")
                 .setPositiveButton("立即下载") { _, _ ->
@@ -607,24 +607,23 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 }
 
             if (apkUrl.isNullOrEmpty()) {
-                (selfUpdateDialog as androidx.appcompat.app.AlertDialog.Builder)
-                    .setNeutralButton("镜像下载") { _, _ ->
-                        showMirrorDownloadDialog()
-                    }
+                builder.setNeutralButton("镜像下载") { _, _ ->
+                    showMirrorDownloadDialog()
+                }
             }
 
-            selfUpdateDialog?.show()
+            selfUpdateDialog = builder.show()
         }
 
         private fun startSelfUpdateDownload(versionName: String, apkUrl: String) {
             val targetFile = FileUtil.getApkFile(requireContext(), versionName)
 
             val dialogView = layoutInflater.inflate(R.layout.dialog_download_progress, null)
-            val tvTitle = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadTitle)
-            val tvSize = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadSize)
-            val tvSpeed = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadSpeed)
-            val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogVerifyStatus)
-            val progressBar = dialogView.findViewById<android.widget.ProgressBar>(R.id.progressDialogDownload)
+            val tvTitle = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_title)
+            val tvSize = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_size)
+            val tvSpeed = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_speed)
+            val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_verify_status)
+            val progressBar = dialogView.findViewById<android.widget.ProgressBar>(R.id.progress_dialog_download)
 
             tvTitle.text = "正在下载 SWUpdater v$versionName"
             tvSize.text = "0 B / --"
