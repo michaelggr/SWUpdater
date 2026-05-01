@@ -49,6 +49,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          sed -i 's/\r$//' gradlew
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace \
             -PversionName=${{ steps.version.outputs.version }} \
