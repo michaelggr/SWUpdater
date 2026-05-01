@@ -1,13 +1,18 @@
 package com.swupdater.ui
 
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.google.android.material.snackbar.Snackbar
 import com.swupdater.BuildConfig
 import com.swupdater.R
 import com.swupdater.network.VersionCheckService
@@ -36,6 +41,42 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     class SettingsFragment : PreferenceFragmentCompat() {
+
+        private var pendingDownloadDir: String? = null
+
+        private val storagePermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) {
+            if (WallpaperManager.hasStoragePermission(requireContext())) {
+                pendingDownloadDir?.let { path ->
+                    WallpaperManager.setCustomDownloadDir(requireContext(), path)
+                    pendingDownloadDir = null
+                }
+            } else {
+                pendingDownloadDir = null
+                view?.let {
+                    Snackbar.make(it, "未授权存储权限，目录设置失败", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        private fun showStoragePermissionDialog() {
+            activity?.let { ctx ->
+                AlertDialog.Builder(ctx)
+                    .setTitle("需要存储权限")
+                    .setMessage("更改壁纸下载目录需要「所有文件访问」权限，是否前往设置授权？")
+                    .setPositiveButton("去设置") { _, _ ->
+                        val intent = WallpaperManager.getStoragePermissionIntent(ctx)
+                        if (intent != null) {
+                            storagePermissionLauncher.launch(intent)
+                        }
+                    }
+                    .setNegativeButton("取消") { _, _ ->
+                        pendingDownloadDir = null
+                    }
+                    .show()
+            }
+        }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             val context = preferenceManager.context
@@ -79,23 +120,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     val enabled = newValue as Boolean
                     WallpaperManager.setAutoChangeEnabled(requireContext(), enabled)
                     AppLog.i("Settings", "自动更换壁纸已${if (enabled) "开启" else "关闭"}")
-                    true
-                }
-                wallpaperCategory.addPreference(this)
-            }
-
-            // 壁纸源选择
-            DropDownPreference(context).apply {
-                key = "pref_wallpaper_source"
-                title = getString(R.string.pref_wallpaper_source)
-                val sourceNames = WallpaperManager.SOURCES.map { it.second }.toTypedArray()
-                val sourceIds = WallpaperManager.SOURCES.map { it.first }.toTypedArray()
-                entries = sourceNames
-                entryValues = sourceIds
-                setDefaultValue(WallpaperManager.SOURCES.first().first)
-                summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
-                setOnPreferenceChangeListener { _, newValue ->
-                    WallpaperManager.setWallpaperSource(requireContext(), newValue.toString())
                     true
                 }
                 wallpaperCategory.addPreference(this)
@@ -149,13 +173,17 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                         summary = "默认（公用 Download/SWUpdater/wallpapers）"
                     } else {
                         val dir = java.io.File(path)
-                        if (dir.exists() && dir.isDirectory) {
-                            WallpaperManager.setCustomDownloadDir(requireContext(), path)
-                            summary = path
-                        } else {
+                        if (!dir.exists() || !dir.isDirectory) {
                             Toast.makeText(requireContext(), "目录不存在，请输入有效路径", Toast.LENGTH_SHORT).show()
                             return@setOnPreferenceChangeListener false
                         }
+                        if (!WallpaperManager.hasStoragePermission(requireContext())) {
+                            pendingDownloadDir = path
+                            showStoragePermissionDialog()
+                            return@setOnPreferenceChangeListener false
+                        }
+                        WallpaperManager.setCustomDownloadDir(requireContext(), path)
+                        summary = path
                     }
                     true
                 }

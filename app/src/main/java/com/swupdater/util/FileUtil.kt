@@ -58,25 +58,65 @@ object FileUtil {
     }
 
     /**
-     * 清除下载缓存
+     * 清除下载缓存（同时清除公共目录和私有目录）
      */
     fun clearDownloadCache(context: Context): Int {
-        val dir = getDownloadDir(context)
         var count = 0
-        dir.listFiles()?.forEach { file ->
-            if (file.isFile && file.name.endsWith(".apk")) {
-                if (file.delete()) count++
+
+        // 清除公共目录下的 APK
+        val publicDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (publicDir.exists()) {
+            publicDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.endsWith(".apk")) {
+                    if (file.delete()) count++
+                }
             }
         }
+
+        // 清除应用私有目录下的 APK
+        val privateDir = File(
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (privateDir.exists()) {
+            privateDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.endsWith(".apk")) {
+                    if (file.delete()) count++
+                }
+            }
+        }
+
         return count
     }
 
     /**
-     * 获取缓存大小
+     * 获取缓存大小（同时计算公共目录和私有目录）
      */
     fun getCacheSize(context: Context): Long {
-        val dir = getDownloadDir(context)
-        return dir.listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+        var totalSize = 0L
+
+        // 计算公共目录大小
+        val publicDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (publicDir.exists()) {
+            totalSize += publicDir.listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+        }
+
+        // 计算应用私有目录大小
+        val privateDir = File(
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (privateDir.exists()) {
+            totalSize += privateDir.listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+        }
+
+        return totalSize
     }
 
     /**

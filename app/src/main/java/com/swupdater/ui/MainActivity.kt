@@ -59,6 +59,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (WallpaperManager.hasStoragePermission(this)) {
+            downloadCurrentWallpaperInternal()
+        } else {
+            Snackbar.make(binding.root, "需要存储权限才能保存到公共目录", Snackbar.LENGTH_SHORT).show()
+        }
+    }
+
+    private var pendingDownloadRunnable: Runnable? = null
+
+    private fun showStoragePermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("需要存储权限")
+            .setMessage("保存壁纸到公共下载目录需要「所有文件访问」权限，是否前往设置授权？")
+            .setPositiveButton("去设置") { _, _ ->
+                val intent = WallpaperManager.getStoragePermissionIntent(this)
+                if (intent != null) {
+                    storagePermissionLauncher.launch(intent)
+                }
+            }
+            .setNegativeButton("取消") { _, _ ->
+                Snackbar.make(binding.root, "壁纸将保存到应用私有目录", Snackbar.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -110,11 +138,13 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                WallpaperManager.ensureDefaultWallpaper(this@MainActivity)
                 val wallpaperFile = WallpaperManager.randomWallpaper(this@MainActivity)
                 if (wallpaperFile != null) {
+                    val displayMetrics = resources.displayMetrics
+                    val targetWidth = displayMetrics.widthPixels
+                    val targetHeight = (160 * displayMetrics.density).toInt()
                     val bitmap = withContext(Dispatchers.IO) {
-                        BitmapFactory.decodeFile(wallpaperFile.absolutePath)
+                        loadBitmapOptimized(wallpaperFile.absolutePath, targetWidth, targetHeight)
                     }
                     if (bitmap != null) {
                     showWallpaperBitmap(bitmap)
@@ -152,12 +182,54 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 显示壁纸缩略图到卡片内
+     * 显示壁纸缩略图到卡片内（内存优化版本）
      */
     private fun showWallpaperBitmap(bitmap: Bitmap) {
         binding.ivWallpaper.setImageBitmap(bitmap)
         binding.ivWallpaper.visibility = View.VISIBLE
         binding.tvNoWallpaper.visibility = View.GONE
+    }
+
+    /**
+     * 内存优化方式加载图片
+     * @param filePath 图片文件路径
+     * @param maxWidth 最大显示宽度
+     * @param maxHeight 最大显示高度
+     */
+    private fun loadBitmapOptimized(filePath: String, maxWidth: Int, maxHeight: Int): Bitmap? {
+        return try {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(filePath, options)
+
+            options.inSampleSize = calculateInSampleSize(options, maxWidth, maxHeight)
+            options.inJustDecodeBounds = false
+            options.inPreferredConfig = Bitmap.Config.RGB_565
+
+            BitmapFactory.decodeFile(filePath, options)
+        } catch (e: Exception) {
+            AppLog.e("MainActivity", "加载图片失败: $filePath", e)
+            null
+        }
+    }
+
+    /**
+     * 计算采样率
+     */
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight: Int = height / 2
+            val halfWidth: Int = width / 2
+
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
     }
 
     private fun applyWallpaperToSystem() {
@@ -175,12 +247,31 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val result = withContext(Dispatchers.IO) {
-                    val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath)
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    BitmapFactory.decodeFile(wallpaperFile.absolutePath, options)
+
+                    val maxSize = 2048
+                    val sampleSize = calculateInSampleSize(options, maxSize, maxSize)
+
+                    options.inJustDecodeBounds = false
+                    options.inSampleSize = sampleSize
+                    options.inPreferredConfig = Bitmap.Config.ARGB_8888
+
+                    val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath, options)
                     if (bitmap == null) return@withContext false
+
                     val wm = android.app.WallpaperManager.getInstance(this@MainActivity)
-                    wm.setBitmap(bitmap)
-                    bitmap.recycle()
-                    true
+                    try {
+                        wm.setBitmap(bitmap)
+                        bitmap.recycle()
+                        true
+                    } catch (e: Exception) {
+                        AppLog.e("MainActivity", "设置壁纸失败", e)
+                        bitmap.recycle()
+                        false
+                    }
                 }
 
                 if (result) {
@@ -197,6 +288,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun downloadCurrentWallpaper() {
+        if (!WallpaperManager.hasStoragePermission(this)) {
+            showStoragePermissionDialog()
+            return
+        }
+        downloadCurrentWallpaperInternal()
+    }
+
+    private fun downloadCurrentWallpaperInternal() {
         lifecycleScope.launch {
             try {
                 val result = WallpaperManager.downloadCurrentWallpaper(this@MainActivity)

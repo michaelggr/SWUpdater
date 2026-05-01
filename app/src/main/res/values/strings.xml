@@ -115,7 +115,6 @@
     <string name="wallpaper_preloading">正在预加载壁纸…</string>
     <string name="pref_auto_change_wallpaper">启动时自动更换壁纸</string>
     <string name="pref_auto_change_wallpaper_summary">每次打开应用自动随机更换背景壁纸</string>
-    <string name="pref_wallpaper_source">壁纸源</string>
     <string name="pref_wallpaper_alpha">内容透明度</string>
     <string name="pref_wallpaper_alpha_summary">数值越小壁纸越清晰，数值越大内容越清晰。控制所有界面的透明度</string>
     <string name="pref_wallpaper_cache_count">缓存壁纸数量</string>
