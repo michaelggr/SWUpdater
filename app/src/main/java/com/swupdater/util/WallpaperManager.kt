@@ -401,16 +401,16 @@ object WallpaperManager {
      * 将当前壁纸复制到用户可访问的下载目录
      * 返回下载结果（含文件名和完整路径）
      */
-    fun downloadCurrentWallpaper(context: Context): WallpaperDownloadResult {
+    suspend fun downloadCurrentWallpaper(context: Context): WallpaperDownloadResult = withContext(Dispatchers.IO) {
         val currentFile = getCurrentWallpaperFile(context)
         if (currentFile == null || !currentFile.exists()) {
             val picked = randomWallpaper(context)
-            if (picked == null) return WallpaperDownloadResult(
+            if (picked == null) return@withContext WallpaperDownloadResult(
                 success = false, error = "没有可用的壁纸"
             )
         }
 
-        val source = getCurrentWallpaperFile(context) ?: return WallpaperDownloadResult(
+        val source = getCurrentWallpaperFile(context) ?: return@withContext WallpaperDownloadResult(
             success = false, error = "壁纸文件不存在"
         )
         val downloadDir = getWallpaperDownloadDir(context)
@@ -424,14 +424,14 @@ object WallpaperManager {
             }
             notifyMediaScanner(context, targetFile)
             Log.i(TAG, "壁纸已保存到: ${targetFile.absolutePath}")
-            return WallpaperDownloadResult(
+            return@withContext WallpaperDownloadResult(
                 success = true,
                 filePath = targetFile.absolutePath,
                 fileName = targetFile.name
             )
         } catch (e: Exception) {
             Log.e(TAG, "保存壁纸失败", e)
-            return WallpaperDownloadResult(success = false, error = e.message ?: "保存失败")
+            return@withContext WallpaperDownloadResult(success = false, error = e.message ?: "保存失败")
         }
     }
 
