@@ -8,8 +8,13 @@ import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
 
 /**
  * 壁纸管理器
@@ -32,6 +37,34 @@ object WallpaperManager {
 
     /** 自定义缓存下载目录路径 */
     private const val PREF_CUSTOM_DOWNLOAD_DIR = "pref_custom_download_dir"
+
+    // ========== 壁纸源定义 ==========
+
+    private val WALLPAPER_URLS = listOf(
+        "https://event-fn.qpyou.cn/event/event/smon/20260402_181247_NDbFPHRkFr.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260402_181138_AqUZSUlfLj.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260402_181112_v7VWuRjqEa.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260402_180959_tjgse1QQAb.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260402_180937_XN59WbmT2X.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260220_142225_BC9IwgltQD.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260220_142200_7VPS8VmMju.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260115_153544_sqnK8ZGXzG.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260115_153459_N6PLTC9GKS.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260115_153523_2Xs55SmwBv.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20260115_153250_SnozU97RQ4.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20251121_115521_jGG1H05JNh.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20251121_115444_aTfX5iXdQR.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20251020_133356_v0FHXXjJuD.png",
+        "https://event-fn.qpyou.cn/event/event/smon/20251020_133320_MIPrwD6t2u.png"
+    )
+
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .build()
+    }
 
     // ========== 目录与缓存 ==========
 
@@ -226,29 +259,75 @@ object WallpaperManager {
     // ========== 预加载与缓存 ==========
 
     /**
-     * 预加载壁纸：复制内置壁纸到缓存
+     * 预加载壁纸：从网络下载壁纸到缓存
      * 返回本次新添加的数量
      */
-    fun preloadWallpapers(context: Context): Int {
-        val added = copyBuiltInWallpapers(context)
-        Log.i(TAG, "预加载: 复制内置壁纸 $added 张")
-        return added
+    suspend fun preloadWallpapers(context: Context): Int = withContext(Dispatchers.IO) {
+        val maxCount = getCacheCountPref(context)
+        val cached = getCachedWallpapers(context)
+        val existingNames = cached.map { it.name }.toSet()
+        var downloaded = 0
+
+        for (url in WALLPAPER_URLS.shuffled()) {
+            if (cached.size + downloaded >= maxCount) break
+
+            val fileName = getFileNameFromUrl(url)
+            if (fileName in existingNames) continue
+
+            try {
+                val success = downloadWallpaper(context, url, fileName)
+                if (success) {
+                    downloaded++
+                    Log.d(TAG, "预下载壁纸: $fileName")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "预下载壁纸失败: $url, ${e.message}")
+            }
+        }
+
+        trimCache(context, maxCount)
+        Log.i(TAG, "壁纸预加载完成: 新下载 $downloaded 张, 缓存 ${getCachedCount(context)} 张")
+        downloaded
     }
 
     /**
-     * 清理超出上限的旧缓存（保留内置壁纸）
+     * 下载单张壁纸到缓存目录
+     */
+    private suspend fun downloadWallpaper(context: Context, url: String, fileName: String): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    response.close()
+                    return@withContext false
+                }
+
+                val targetFile = File(getWallpaperDir(context), fileName)
+                response.body?.byteStream()?.use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                response.close()
+
+                notifyMediaScanner(context, targetFile)
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "下载壁纸失败: $url", e)
+                false
+            }
+        }
+
+    /**
+     * 清理超出上限的旧缓存
      */
     private fun trimCache(context: Context, maxCount: Int) {
-        val cached = getCachedWallpapers(context)
+        val cached = getCachedWallpapers(context).sortedBy { it.lastModified() }
         val currentName = getCurrentWallpaperName(context)
-
-        // 保留内置壁纸，按时间排序删除最旧的非内置壁纸
-        val downloadedFiles = cached
-            .filter { it.name !in BUILT_IN_WALLPAPERS }
-            .sortedBy { it.lastModified() }
-
         var toDelete = cached.size - maxCount
-        for (file in downloadedFiles) {
+
+        for (file in cached) {
             if (toDelete <= 0) break
             if (file.name == currentName) continue
             if (file.delete()) {
@@ -259,65 +338,22 @@ object WallpaperManager {
     }
 
     /**
-     * 清除壁纸缓存（保留内置壁纸）
+     * 清除壁纸缓存
      */
     fun clearCache(context: Context): Int {
         val dir = getWallpaperDir(context)
         var count = 0
         dir.listFiles()?.forEach { file ->
-            if (file.isFile && file.name !in BUILT_IN_WALLPAPERS) {
+            if (file.isFile) {
                 if (file.delete()) count++
             }
         }
-        // 如果当前壁纸不是内置的，也清除
-        val currentName = getCurrentWallpaperName(context)
-        if (currentName != null && currentName !in BUILT_IN_WALLPAPERS) {
-            setCurrentWallpaperName(context, null)
-        }
+        setCurrentWallpaperName(context, null)
         return count
     }
 
-    // ========== 默认壁纸 ==========
-
-    /** 内置壁纸文件名列表 */
-    private val BUILT_IN_WALLPAPERS = listOf(
-        "library_01.png", "library_02.png", "library_03.png", "library_04.png", "library_05.png",
-        "library_06.png", "library_07.png", "library_08.png", "library_09.png", "library_10.png",
-        "library_11.png", "library_12.png", "library_13.png", "library_14.png", "library_15.png"
-    )
-
     /**
-     * 将内置壁纸从 assets 复制到缓存目录
-     * 返回复制的壁纸文件数
-     */
-    private fun copyBuiltInWallpapers(context: Context): Int {
-        val dir = getWallpaperDir(context)
-        if (!dir.exists()) dir.mkdirs()
-
-        var copied = 0
-        for (filename in BUILT_IN_WALLPAPERS) {
-            val targetFile = File(dir, filename)
-            if (!targetFile.exists()) {
-                try {
-                    context.assets.open("wallpapers/$filename").use { input ->
-                        FileOutputStream(targetFile).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    copied++
-                    Log.i(TAG, "复制内置壁纸: $filename")
-                } catch (e: Exception) {
-                    Log.e(TAG, "复制内置壁纸失败: $filename", e)
-                }
-            }
-        }
-        return copied
-    }
-
-    /**
-     * 确保有默认壁纸可用
-     * 优先使用已有当前壁纸或缓存壁纸，没有则从 assets 复制内置壁纸
-     * 返回当前壁纸文件
+     * 确保有默认壁纸可用，缓存没有则触发下载
      */
     fun ensureDefaultWallpaper(context: Context): File? {
         val current = getCurrentWallpaperFile(context)
@@ -329,16 +365,6 @@ object WallpaperManager {
             setCurrentWallpaperName(context, picked.name)
             return picked
         }
-
-        // 没有缓存，复制内置壁纸
-        copyBuiltInWallpapers(context)
-        val newCached = getCachedWallpapers(context)
-        if (newCached.isNotEmpty()) {
-            val picked = newCached.random()
-            setCurrentWallpaperName(context, picked.name)
-            return picked
-        }
-
         return null
     }
 
