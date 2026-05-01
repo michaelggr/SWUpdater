@@ -15,6 +15,9 @@ import androidx.preference.SwitchPreferenceCompat
 import com.google.android.material.snackbar.Snackbar
 import com.swupdater.BuildConfig
 import com.swupdater.R
+import com.swupdater.model.DownloadProgress
+import com.swupdater.model.DownloadState
+import com.swupdater.network.DownloadManager
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
@@ -22,6 +25,7 @@ import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -43,6 +47,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
 
         private var pendingDownloadDir: String? = null
+        private var selfUpdateDialog: AlertDialog? = null
+        private var progressJob: Job? = null
 
         private val storagePermissionLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -82,13 +88,11 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             val context = preferenceManager.context
             val screen = preferenceManager.createPreferenceScreen(context)
 
-            // === 外观设置 ===
             val appearanceCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "外观"
             }
             screen.addPreference(appearanceCategory)
 
-            // 主题模式（日间/夜间/跟随系统）
             DropDownPreference(context).apply {
                 key = "pref_theme_mode"
                 title = "主题模式"
@@ -104,13 +108,11 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 appearanceCategory.addPreference(this)
             }
 
-            // === 壁纸设置 ===
             val wallpaperCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "壁纸"
             }
             screen.addPreference(wallpaperCategory)
 
-            // 启动时自动更换壁纸
             SwitchPreferenceCompat(context).apply {
                 key = "pref_auto_change_wallpaper"
                 title = getString(R.string.pref_auto_change_wallpaper)
@@ -125,7 +127,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // 缓存壁纸数量
             DropDownPreference(context).apply {
                 key = "pref_wallpaper_cache_count"
                 title = getString(R.string.pref_wallpaper_cache_count)
@@ -142,7 +143,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // 清除壁纸缓存
             Preference(context).apply {
                 key = "pref_clear_wallpaper_cache"
                 title = getString(R.string.pref_clear_wallpaper_cache)
@@ -159,7 +159,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // 壁纸下载目录
             androidx.preference.EditTextPreference(context).apply {
                 key = "pref_custom_download_dir"
                 title = getString(R.string.pref_wallpaper_download_dir)
@@ -190,7 +189,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // === 更新设置 ===
             val updateCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "更新设置"
             }
@@ -244,13 +242,11 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 updateCategory.addPreference(this)
             }
 
-            // === 后台保活设置 ===
             val keepAliveCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "后台保活"
             }
             screen.addPreference(keepAliveCategory)
 
-            // 保活开关
             SwitchPreferenceCompat(context).apply {
                 key = "pref_keep_alive_enabled"
                 title = "启用后台保活"
@@ -265,7 +261,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // 开机自启动
             SwitchPreferenceCompat(context).apply {
                 key = "pref_boot_auto_start"
                 title = "开机自启动"
@@ -280,7 +275,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // 电池优化白名单
             Preference(context).apply {
                 key = "pref_battery_optimization"
                 title = "忽略电池优化"
@@ -296,7 +290,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // Root保活
             SwitchPreferenceCompat(context).apply {
                 key = "pref_root_keep_alive"
                 title = "Root 保活"
@@ -316,7 +309,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // Root 自动安装
             SwitchPreferenceCompat(context).apply {
                 key = "pref_root_auto_install"
                 title = "Root 自动安装"
@@ -326,7 +318,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 } else {
                     "未检测到Root权限，此功能需要已Root的设备"
                 }
-                setDefaultValue(isRooted) // 有 Root 默认开启
+                setDefaultValue(isRooted)
                 isEnabled = isRooted
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
@@ -336,7 +328,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // 保活说明
             Preference(context).apply {
                 key = "pref_keep_alive_info"
                 title = "保活说明"
@@ -345,7 +336,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // === 安全设置 ===
             val securityCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "安全设置"
             }
@@ -359,13 +349,11 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 securityCategory.addPreference(this)
             }
 
-            // === 调试设置 ===
             val debugCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "调试"
             }
             screen.addPreference(debugCategory)
 
-            // 日志模式开关
             SwitchPreferenceCompat(context).apply {
                 key = "pref_log_mode"
                 title = "日志模式"
@@ -380,7 +368,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
-            // 测试自动下载
             Preference(context).apply {
                 key = "pref_test_auto_download"
                 title = "测试自动下载"
@@ -394,7 +381,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
-            // 查看日志
             Preference(context).apply {
                 key = "pref_view_log"
                 title = "查看日志"
@@ -406,7 +392,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
-            // 导出日志
             Preference(context).apply {
                 key = "pref_export_log"
                 title = "导出日志"
@@ -424,7 +409,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
-            // === 数据源设置 ===
             val sourceCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "数据源"
             }
@@ -441,8 +425,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 )
                 entryValues = arrayOf(
                     "https://play.qpyou.cn/b?i=8387&g=8109&gc=7976",
-                    "https://example.com/backup1", // 需要实际URL
-                    "https://example.com/backup2"  // 需要实际URL
+                    "https://example.com/backup1",
+                    "https://example.com/backup2"
                 )
                 setDefaultValue(VersionCheckService.DEFAULT_SOURCE_URL)
                 setOnPreferenceChangeListener { _, newValue ->
@@ -464,7 +448,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 sourceCategory.addPreference(this)
             }
 
-            // === 其他 ===
             val otherCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "其他"
             }
@@ -492,7 +475,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "v${BuildConfig.VERSION_NAME}"
                 isSelectable = true
                 setOnPreferenceClickListener {
-                    // 检查 SWUpdater 应用自身的更新
                     checkSelfUpdate(BuildConfig.VERSION_NAME)
                     true
                 }
@@ -518,11 +500,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 .show()
         }
 
-        /**
-         * 检查本应用自身是否有新版本
-         * 从 GitHub Release 获取最新版本号和 APK 下载链接，直接下载
-         * 支持 GitHub API 镜像加速，国内可用
-         */
         private fun checkSelfUpdate(currentVersion: String) {
             val pref = findPreference<Preference>("pref_version")
             pref?.summary = "正在检查更新…"
@@ -562,7 +539,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                                 val tagName = json.get("tag_name")?.asString ?: continue
                                 val versionName = tagName.removePrefix("v")
 
-                                // 提取 APK 下载链接
                                 var apkUrl = ""
                                 val assets = json.get("assets")?.asJsonArray
                                 if (assets != null) {
@@ -594,7 +570,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                     if (AppInfoUtil.isNewerVersion(latestVersion, currentVersion)) {
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-                        // 弹窗显示更新信息，用户确认后下载安装
                         showSelfUpdateDialog(currentVersion, latestVersion, apkUrl)
                     } else {
                         pref?.summary = "v$currentVersion（已是最新版本）"
@@ -608,22 +583,14 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
         }
 
-        /**
-         * 显示应用自身更新弹窗，用户确认后下载安装
-         */
         private fun showSelfUpdateDialog(currentVersion: String, latestVersion: String, apkUrl: String?) {
-            val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            selfUpdateDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("发现新版本")
                 .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n是否立即下载更新？")
                 .setPositiveButton("立即下载") { _, _ ->
                     if (!apkUrl.isNullOrEmpty()) {
-                        // 有 APK 直链，直接下载
-                        com.swupdater.service.DownloadService.start(
-                            requireContext(), apkUrl, latestVersion
-                        )
-                        Toast.makeText(requireContext(), "开始下载 SWUpdater v$latestVersion", Toast.LENGTH_SHORT).show()
+                        startSelfUpdateDownload(latestVersion, apkUrl)
                     } else {
-                        // 无直链，打开 GitHub Release 页面
                         try {
                             startActivity(android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
@@ -635,20 +602,102 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     }
                 }
                 .setNegativeButton("稍后", null)
-
-            // 如果无 APK 直链，增加镜像选择选项
-            if (apkUrl.isNullOrEmpty()) {
-                dialog.setNeutralButton("镜像下载") { _, _ ->
-                    showMirrorDownloadDialog()
+                .setOnDismissListener {
+                    progressJob?.cancel()
                 }
+
+            if (apkUrl.isNullOrEmpty()) {
+                (selfUpdateDialog as androidx.appcompat.app.AlertDialog.Builder)
+                    .setNeutralButton("镜像下载") { _, _ ->
+                        showMirrorDownloadDialog()
+                    }
             }
 
-            dialog.show()
+            selfUpdateDialog?.show()
         }
 
-        /**
-         * 显示镜像下载选择对话框
-         */
+        private fun startSelfUpdateDownload(versionName: String, apkUrl: String) {
+            val targetFile = FileUtil.getApkFile(requireContext(), versionName)
+
+            val dialogView = layoutInflater.inflate(R.layout.dialog_download_progress, null)
+            val tvTitle = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadTitle)
+            val tvSize = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadSize)
+            val tvSpeed = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDownloadSpeed)
+            val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogVerifyStatus)
+            val progressBar = dialogView.findViewById<android.widget.ProgressBar>(R.id.progressDialogDownload)
+
+            tvTitle.text = "正在下载 SWUpdater v$versionName"
+            tvSize.text = "0 B / --"
+            tvSpeed.text = ""
+            tvStatus.visibility = android.view.View.GONE
+            progressBar.progress = 0
+
+            selfUpdateDialog?.dismiss()
+
+            val downloadDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("下载更新")
+                .setView(dialogView)
+                .setCancelable(false)
+                .setNegativeButton("取消") { _, _ ->
+                    DownloadManager.cancelDownload()
+                    progressJob?.cancel()
+                    Toast.makeText(requireContext(), "已取消下载", Toast.LENGTH_SHORT).show()
+                }
+                .create()
+
+            downloadDialog.show()
+
+            progressJob = lifecycleScope.launch {
+                DownloadManager.startDownload(apkUrl, targetFile, this)
+
+                DownloadManager.progress.collect { progress ->
+                    when (progress.state) {
+                        DownloadState.DOWNLOADING -> {
+                            tvTitle.text = "正在下载 SWUpdater v$versionName"
+                            val downloaded = FileUtil.formatFileSize(progress.downloadedBytes)
+                            val total = if (progress.totalBytes > 0) FileUtil.formatFileSize(progress.totalBytes) else "--"
+                            tvSize.text = "$downloaded / $total"
+                            tvSpeed.text = FileUtil.formatSpeed(progress.speed)
+                            if (progress.totalBytes > 0) {
+                                progressBar.progress = progress.progressPercent
+                            }
+                        }
+                        DownloadState.DOWNLOADED -> {
+                            tvTitle.text = "下载完成"
+                            tvSize.text = FileUtil.formatFileSize(progress.totalBytes)
+                            tvSpeed.text = ""
+                            progressBar.progress = 100
+                        }
+                        DownloadState.VERIFYING -> {
+                            tvStatus.visibility = android.view.View.VISIBLE
+                            tvStatus.text = "正在校验..."
+                        }
+                        DownloadState.VERIFIED -> {
+                            tvStatus.visibility = android.view.View.VISIBLE
+                            tvStatus.text = "校验通过"
+                            tvStatus.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                            downloadDialog.dismiss()
+                            Toast.makeText(requireContext(), "下载完成，请安装", Toast.LENGTH_SHORT).show()
+                            return@collect
+                        }
+                        DownloadState.VERIFY_FAILED -> {
+                            tvStatus.visibility = android.view.View.VISIBLE
+                            tvStatus.text = "校验失败，请重新下载"
+                            tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
+                        }
+                        DownloadState.FAILED -> {
+                            tvTitle.text = "下载失败"
+                            tvStatus.visibility = android.view.View.VISIBLE
+                            tvStatus.text = progress.filePath
+                            tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
+                            downloadDialog.setNegativeButton("关闭", null)
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
+
         private fun showMirrorDownloadDialog() {
             val downloadMirrors = arrayOf(
                 "GitHub（原版）",
@@ -679,6 +728,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 }
                 .setNegativeButton("取消", null)
                 .show()
+        }
+
+        override fun onDestroy() {
+            super.onDestroy()
+            progressJob?.cancel()
+            selfUpdateDialog?.dismiss()
         }
     }
 }
