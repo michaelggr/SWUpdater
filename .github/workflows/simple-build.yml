@@ -26,7 +26,6 @@ jobs:
       - name: Check LFS files
         run: |
           git lfs pull
-          ls -la app/src/main/assets/wallpapers/
 
       - name: Fix gradlew line endings
         run: sed -i 's/\r$//' gradlew
