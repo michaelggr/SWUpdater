@@ -68,6 +68,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             DownloadManager.progress.collect { progress ->
                 if (progress.state == DownloadState.DOWNLOADED && progress.filePath.isNotEmpty()) {
+                    // 通知媒体库扫描，使 APK 在文件管理器中可见
+                    FileUtil.notifyFileScanned(getApplication(), File(progress.filePath))
                     verifyDownloadedFile(progress.filePath)
                 }
             }

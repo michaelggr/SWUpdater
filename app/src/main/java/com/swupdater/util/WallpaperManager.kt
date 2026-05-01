@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaScannerConnection
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -218,14 +219,14 @@ object WallpaperManager {
     // ========== 目录与缓存 ==========
 
     /**
-     * 获取壁纸缓存目录（应用私有外部存储目录）
-     * 默认路径: /Android/data/<package>/files/Pictures/SWUpdater/wallpapers
+     * 获取壁纸缓存目录（公共 Pictures 目录，文件管理器可见）
+     * 路径: /sdcard/Pictures/SWUpdater/wallpapers
      */
-    @Suppress("UNUSED_PARAMETER")
     fun getWallpaperDir(context: Context): File {
-        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-            ?: File(context.filesDir, "Pictures")
-        val dir = File(baseDir, "SWUpdater/$WALLPAPER_DIR")
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            "SWUpdater/$WALLPAPER_DIR"
+        )
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
@@ -452,6 +453,9 @@ object WallpaperManager {
                     }
                 }
                 response.close()
+
+                // 通知媒体库扫描，使文件在图库/文件管理器中可见
+                notifyMediaScanner(context, targetFile)
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "下载壁纸失败: $url", e)
@@ -524,6 +528,7 @@ object WallpaperManager {
                         input.copyTo(output)
                     }
                 }
+                notifyMediaScanner(context, targetFile)
                 Log.i(TAG, "默认壁纸已复制到: ${targetFile.absolutePath}")
             }
 
@@ -593,6 +598,8 @@ object WallpaperManager {
                     input.copyTo(output)
                 }
             }
+            // 通知媒体库扫描，使文件在图库/文件管理器中可见
+            notifyMediaScanner(context, targetFile)
             Log.i(TAG, "壁纸已保存到: ${targetFile.absolutePath}")
             WallpaperDownloadResult(
                 success = true,
@@ -643,5 +650,26 @@ object WallpaperManager {
 
     private fun getFileNameFromUrl(url: String): String {
         return url.substringAfterLast("/").substringBefore("?").ifEmpty { "wallpaper_${System.currentTimeMillis()}.jpg" }
+    }
+
+    /**
+     * 通知媒体库扫描文件，使文件在图库/文件管理器中立即可见
+     * 已通过 File API 写入公共目录，只需通知系统扫描即可
+     */
+    private fun notifyMediaScanner(context: Context, file: File) {
+        try {
+            MediaScannerConnection.scanFile(
+                context, arrayOf(file.absolutePath), arrayOf(getMimeType(file.name)), null)
+        } catch (e: Exception) {
+            Log.w(TAG, "通知媒体库扫描失败: ${e.message}")
+        }
+    }
+
+    private fun getMimeType(fileName: String): String {
+        return when {
+            fileName.endsWith(".png", ignoreCase = true) -> "image/png"
+            fileName.endsWith(".webp", ignoreCase = true) -> "image/webp"
+            else -> "image/jpeg"
+        }
     }
 }

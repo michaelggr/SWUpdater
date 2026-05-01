@@ -3,6 +3,7 @@ package com.swupdater.network
 import android.util.Log
 import com.swupdater.model.DownloadProgress
 import com.swupdater.model.DownloadState
+import com.swupdater.util.FileUtil
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

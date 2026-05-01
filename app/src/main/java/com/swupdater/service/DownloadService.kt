@@ -1,4 +1,4 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.app.*
 import android.content.Context
@@ -160,6 +160,10 @@ class DownloadService : Service() {
                     DownloadState.FAILED,
                     DownloadState.VERIFY_FAILED -> {
                         isDownloading = false
+                        // 下载完成时通知媒体库扫描，使 APK 在文件管理器中可见
+                        if (progress.state == DownloadState.DOWNLOADED && progress.filePath.isNotEmpty()) {
+                            FileUtil.notifyFileScanned(this@DownloadService, java.io.File(progress.filePath))
+                        }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {

@@ -1,8 +1,10 @@
 package com.swupdater.util
 
 import android.content.Context
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import java.io.File
 import java.text.DecimalFormat
 
@@ -17,7 +19,6 @@ object FileUtil {
      * 获取应用下载目录（公用 Download 目录）
      * 路径: /sdcard/Download/SWUpdater/updates
      */
-    @Suppress("UNUSED_PARAMETER")
     fun getDownloadDir(context: Context): File {
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
@@ -115,7 +116,6 @@ object FileUtil {
      * - .../v9.1.9/...
      */
     fun parseVersionFromUrl(url: String): String? {
-        // 尝试从文件名中提取版本号
         val patterns = listOf(
             Regex("""[_\-\./]v?(\d+\.\d+\.\d+)\.apk""", RegexOption.IGNORE_CASE),
             Regex("""[_\-\./]v?(\d+\.\d+\.\d+)""", RegexOption.IGNORE_CASE),
@@ -126,5 +126,30 @@ object FileUtil {
             pattern.find(url)?.groupValues?.get(1)?.let { return it }
         }
         return null
+    }
+
+    /**
+     * 通知媒体库扫描文件，使 APK 在文件管理器中立即可见
+     * Android 10+ 通过 DownloadManager 的 MediaStore 记录，低版本用广播扫描
+     */
+    fun notifyFileScanned(context: Context, file: File) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+: 通过 MediaStore Downloads 插入记录
+                val values = android.content.ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, file.name)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive")
+                    put(MediaStore.Downloads.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_DOWNLOADS}/SWUpdater/updates")
+                    put(MediaStore.Downloads.IS_PENDING, 0)
+                    put(MediaStore.Downloads.SIZE, file.length())
+                }
+                context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            }
+            // 所有版本都执行 MediaScannerConnection 扫描
+            MediaScannerConnection.scanFile(
+                context, arrayOf(file.absolutePath),
+                arrayOf("application/vnd.android.package-archive"), null)
+        } catch (_: Exception) {}
     }
 }
