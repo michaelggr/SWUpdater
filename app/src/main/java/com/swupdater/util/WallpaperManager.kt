@@ -371,15 +371,18 @@ object WallpaperManager {
     // ========== 随机换壁纸（含下载） ==========
 
     /**
-     * 随机换壁纸：从缓存中随机选择一张
+     * 随机换壁纸：从缓存中随机选择一张，缓存不足时先下载
      */
-    fun randomWallpaper(context: Context): File? {
-        ensureDefaultWallpaper(context)
+    suspend fun randomWallpaper(context: Context): File? = withContext(Dispatchers.IO) {
+        if (getCachedCount(context) < 2) {
+            preloadWallpapers(context)
+        }
+
         val picked = pickRandomFromCache(context)
         if (picked != null) {
             Log.i(TAG, "随机更换壁纸: ${picked.name}")
         }
-        return picked
+        picked
     }
 
     // ========== 壁纸下载到用户目录 ==========
