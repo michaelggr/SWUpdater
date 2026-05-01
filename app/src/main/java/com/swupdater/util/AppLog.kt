@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -9,10 +9,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 
-/**
- * 应用日志工具
- * 支持内存日志缓冲 + 文件持久化，可在设置中开关
- */
 object AppLog {
 
     private const val PREFS_NAME = "sw_updater_prefs"
@@ -22,7 +18,6 @@ object AppLog {
 
     private val dateFormat = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
 
-    // 内存日志缓冲
     private val buffer = mutableListOf<LogEntry>()
     private val listeners = CopyOnWriteArrayList<(LogEntry) -> Unit>()
 
@@ -36,25 +31,16 @@ object AppLog {
         override fun toString(): String = "${formattedTime} [$level] $tag: $message"
     }
 
-    /**
-     * 是否启用日志模式
-     */
     fun isLogModeEnabled(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean(PREF_LOG_MODE, false)
     }
 
-    /**
-     * 设置日志模式
-     */
     fun setLogModeEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(PREF_LOG_MODE, enabled).apply()
     }
 
-    /**
-     * 添加日志监听器（用于 UI 实时展示）
-     */
     fun addListener(listener: (LogEntry) -> Unit) {
         listeners.add(listener)
     }
@@ -63,12 +49,11 @@ object AppLog {
         listeners.remove(listener)
     }
 
-    // ---- 日志方法 ----
-
     fun d(tag: String, message: String) = log("DEBUG", tag, message)
     fun i(tag: String, message: String) = log("INFO", tag, message)
     fun w(tag: String, message: String) = log("WARN", tag, message)
     fun e(tag: String, message: String) = log("ERROR", tag, message)
+    fun e(tag: String, message: String, throwable: Throwable) = log("ERROR", tag, "$message\n${android.util.Log.getStackTraceString(throwable)}")
 
     private fun log(level: String, tag: String, message: String) {
         val entry = LogEntry(
@@ -78,7 +63,6 @@ object AppLog {
             message = message
         )
 
-        // 始终输出到 Android Logcat
         when (level) {
             "DEBUG" -> android.util.Log.d(tag, message)
             "INFO" -> android.util.Log.i(tag, message)
@@ -86,7 +70,6 @@ object AppLog {
             "ERROR" -> android.util.Log.e(tag, message)
         }
 
-        // 缓冲区
         synchronized(buffer) {
             buffer.add(entry)
             if (buffer.size > MAX_LOG_ENTRIES) {
@@ -95,18 +78,11 @@ object AppLog {
             }
         }
 
-        // 通知监听器
         listeners.forEach { it(entry) }
     }
 
-    /**
-     * 获取所有日志
-     */
     fun getLogs(): List<LogEntry> = synchronized(buffer) { buffer.toList() }
 
-    /**
-     * 获取日志文本
-     */
     fun getLogText(): String = getLogs().joinToString("\n") { it.toString() }
 
     private var lastFlushIndex = 0
@@ -135,9 +111,6 @@ object AppLog {
         lastFlushIndex = 0
     }
 
-    /**
-     * 获取日志文件
-     */
     fun getLogFile(context: Context): File {
         return File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME)
     }
