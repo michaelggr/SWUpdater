@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("需要存储权限")
             .setMessage("保存壁纸到公共下载目录需要「所有文件访问」权限，是否前往设置授权？")
             .setPositiveButton("去设置") { _, _ ->
-                val intent = WallpaperManager.getStoragePermissionIntent(this)
+                val intent = WallpaperManager.getStoragePermissionIntent(this@MainActivity)
                 if (intent != null) {
                     storagePermissionLauncher.launch(intent)
                 }
