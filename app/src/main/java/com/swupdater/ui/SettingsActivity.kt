@@ -689,7 +689,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             tvStatus.visibility = android.view.View.VISIBLE
                             tvStatus.text = progress.filePath
                             tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
-                            downloadDialog.setNegativeButton("关闭", null)
+                            downloadDialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).text = "关闭"
                         }
                         else -> {}
                     }
