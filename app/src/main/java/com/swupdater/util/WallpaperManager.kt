@@ -219,14 +219,14 @@ object WallpaperManager {
     // ========== 目录与缓存 ==========
 
     /**
-     * 获取壁纸缓存目录（公共 Pictures 目录，文件管理器可见）
-     * 路径: /sdcard/Pictures/SWUpdater/wallpapers
+     * 获取壁纸缓存目录（应用外部存储，无需额外权限）
+     * 路径: /Android/data/<package>/files/Pictures/SWUpdater/wallpapers
+     * 缓存是应用内部使用的，无需用户直接访问
      */
     fun getWallpaperDir(context: Context): File {
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-            "SWUpdater/$WALLPAPER_DIR"
-        )
+        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            ?: File(context.filesDir, "Pictures")
+        val dir = File(baseDir, "SWUpdater/$WALLPAPER_DIR")
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
@@ -234,6 +234,7 @@ object WallpaperManager {
     /**
      * 获取壁纸下载保存目录（用户可自定义）
      * 默认路径: /sdcard/Download/SWUpdater/wallpapers（公共目录，文件管理器可见）
+     * 无公共目录权限时回退到应用私有目录
      */
     fun getWallpaperDownloadDir(context: Context): File {
         val customPath = getPrefs(context).getString(PREF_CUSTOM_DOWNLOAD_DIR, null)
@@ -241,6 +242,18 @@ object WallpaperManager {
             val dir = File(customPath)
             if (!dir.exists()) dir.mkdirs()
             return dir
+        }
+        // Android 10+ 需要检查是否有公共目录写入权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (!android.os.Environment.isExternalStorageManager()) {
+                // 无权限时回退到应用私有目录
+                val fallbackDir = File(
+                    context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                    "SWUpdater/wallpapers"
+                )
+                if (!fallbackDir.exists()) fallbackDir.mkdirs()
+                return fallbackDir
+            }
         }
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),

@@ -16,10 +16,21 @@ object FileUtil {
     private val sizeFormat = DecimalFormat("#,##0.##")
 
     /**
-     * 获取应用下载目录（公用 Download 目录）
-     * 路径: /sdcard/Download/SWUpdater/updates
+     * 获取应用下载目录
+     * 优先使用公共 Download 目录，无权限时回退到应用私有目录
      */
     fun getDownloadDir(context: Context): File {
+        // Android 10+ 需要检查是否有公共目录写入权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (!android.os.Environment.isExternalStorageManager()) {
+                val fallbackDir = File(
+                    context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                    "SWUpdater/updates"
+                )
+                if (!fallbackDir.exists()) fallbackDir.mkdirs()
+                return fallbackDir
+            }
+        }
         val dir = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
             "SWUpdater/updates"

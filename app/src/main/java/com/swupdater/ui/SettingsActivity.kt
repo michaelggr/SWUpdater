@@ -566,19 +566,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                     if (AppInfoUtil.isNewerVersion(latestVersion, currentVersion)) {
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-
-                        if (apkUrl.isNotEmpty()) {
-                            // 直接下载 APK
-                            com.swupdater.service.DownloadService.start(
-                                requireContext(),
-                                apkUrl,
-                                latestVersion
-                            )
-                            Toast.makeText(requireContext(), "开始下载 SWUpdater v$latestVersion", Toast.LENGTH_SHORT).show()
-                        } else {
-                            // 获取不到 APK 直链，显示选择对话框
-                            showUpdateDialog(currentVersion, latestVersion, null)
-                        }
+                        // 弹窗显示更新信息，用户确认后下载安装
+                        showSelfUpdateDialog(currentVersion, latestVersion, apkUrl)
                     } else {
                         pref?.summary = "v$currentVersion（已是最新版本）"
                         Toast.makeText(requireContext(), "当前已是最新版本 v$currentVersion", Toast.LENGTH_SHORT).show()
@@ -592,37 +581,75 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         /**
-         * 显示更新对话框，提供多个下载镜像
+         * 显示应用自身更新弹窗，用户确认后下载安装
          */
-        private fun showUpdateDialog(currentVersion: String, latestVersion: String, releaseUrl: String?) {
-            // 下载链接镜像列表
-            val downloadMirrors = listOf(
-                "GitHub（原版）" to "https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "kgithub 加速" to "https://kgithub.com/michaelggr/SWUpdater/releases/latest",
-                "FastGit 加速" to "https://hub.fastgit.xyz/michaelggr/SWUpdater/releases",
-                "GitClone 加速" to "https://gitclone.com/github.com/michaelggr/SWUpdater/releases/latest"
-            )
-
-            val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
-
-            androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle("发现新版本 v$latestVersion")
-                .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
-                .setItems(mirrorNames) { _, which ->
-                    val url = downloadMirrors[which].second
-                    try {
-                        startActivity(android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse(url)
-                        ))
-                    } catch (e: Exception) {
-                        Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
+        private fun showSelfUpdateDialog(currentVersion: String, latestVersion: String, apkUrl: String?) {
+            val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("发现新版本")
+                .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n是否立即下载更新？")
+                .setPositiveButton("立即下载") { _, _ ->
+                    if (!apkUrl.isNullOrEmpty()) {
+                        // 有 APK 直链，直接下载
+                        com.swupdater.service.DownloadService.start(
+                            requireContext(), apkUrl, latestVersion
+                        )
+                        Toast.makeText(requireContext(), "开始下载 SWUpdater v$latestVersion", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // 无直链，打开 GitHub Release 页面
+                        try {
+                            startActivity(android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://github.com/michaelggr/SWUpdater/releases/latest")
+                            ))
+                        } catch (_: Exception) {
+                            Toast.makeText(requireContext(), "无法打开下载页面", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
                 .setNegativeButton("稍后", null)
+
+            // 如果无 APK 直链，增加镜像选择选项
+            if (apkUrl.isNullOrEmpty()) {
+                dialog.setNeutralButton("镜像下载") { _, _ ->
+                    showMirrorDownloadDialog()
+                }
+            }
+
+            dialog.show()
+        }
+
+        /**
+         * 显示镜像下载选择对话框
+         */
+        private fun showMirrorDownloadDialog() {
+            val downloadMirrors = arrayOf(
+                "GitHub（原版）",
+                "ghgo 加速",
+                "gh-proxy 加速",
+                "ghproxy 加速",
+                "kgithub 加速"
+            )
+            val mirrorUrls = listOf(
+                "https://github.com/michaelggr/SWUpdater/releases/latest",
+                "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
+                "https://kgithub.com/michaelggr/SWUpdater/releases/latest"
+            )
+
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("选择下载镜像")
+                .setItems(downloadMirrors) { _, which ->
+                    try {
+                        startActivity(android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(mirrorUrls[which])
+                        ))
+                    } catch (_: Exception) {
+                        Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton("取消", null)
                 .show()
         }
     }
