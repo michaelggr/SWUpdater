@@ -88,22 +88,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // 壁纸源选择
-            DropDownPreference(context).apply {
-                key = "pref_wallpaper_source"
-                title = getString(R.string.pref_wallpaper_source)
-                val sourceNames = WallpaperManager.SOURCES.map { it.second }.toTypedArray()
-                val sourceIds = WallpaperManager.SOURCES.map { it.first }.toTypedArray()
-                entries = sourceNames
-                entryValues = sourceIds
-                setDefaultValue(WallpaperManager.SOURCES.first().first)
-                summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
-                setOnPreferenceChangeListener { _, newValue ->
-                    WallpaperManager.setWallpaperSource(requireContext(), newValue.toString())
-                    true
-                }
-                wallpaperCategory.addPreference(this)
-            }
+
 
             // 缓存壁纸数量
             DropDownPreference(context).apply {
