@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.Manifest
 import android.content.ComponentName
@@ -103,6 +103,15 @@ class MainActivity : AppCompatActivity() {
 
         checkAndRequestPermissions()
         loadWallpaperOnStart()
+
+        if (intent.getBooleanExtra(SplashActivity.EXTRA_FROM_SPLASH, false)) {
+            lifecycleScope.launch {
+                val count = WallpaperManager.preloadWallpapers(this@MainActivity)
+                if (count > 0) {
+                    loadWallpaperOnStart()
+                }
+            }
+        }
     }
 
     // ========== 壁纸功能 ==========

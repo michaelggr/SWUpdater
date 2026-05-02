@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- 日间模式颜色（浅色） -->
 <resources>
     <color name="primary">#FF4A3F9F</color>
@@ -19,6 +19,7 @@
 
     <color name="success">#FF2E7D32</color>
     <color name="warning">#FFF57F17</color>
+    <color name="warning_bg">#1AF57F17</color>
     <color name="error">#FFC62828</color>
     <color name="info">#FF1565C0</color>
 
