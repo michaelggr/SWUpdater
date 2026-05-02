@@ -156,11 +156,11 @@ class MainActivity : AppCompatActivity() {
                         loadBitmapOptimized(wallpaperFile.absolutePath, targetWidth, targetHeight)
                     }
                     if (bitmap != null) {
-                    showWallpaperBitmap(bitmap)
-                    Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
-                } else {
-                    Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
-                }
+                        showWallpaperBitmap(bitmap)
+                        Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
+                    } else {
+                        Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                    }
                 } else {
                     Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
                 }

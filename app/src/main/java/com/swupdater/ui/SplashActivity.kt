@@ -102,19 +102,19 @@ class SplashActivity : AppCompatActivity() {
             pm.isIgnoringBatteryOptimizations(packageName)
         } else true
 
-        binding.tvStorageStatus.text = if (storageGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvStorageStatus.text = if (storageGranted) getString(R.string.granted) else getString(R.string.not_granted)
         binding.tvStorageStatus.setTextColor(getColor(if (storageGranted) R.color.success else R.color.error))
 
-        binding.tvOverlayStatus.text = if (overlayGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvOverlayStatus.text = if (overlayGranted) getString(R.string.granted) else getString(R.string.not_granted)
         binding.tvOverlayStatus.setTextColor(getColor(if (overlayGranted) R.color.success else R.color.error))
 
-        binding.tvInstallStatus.text = if (installGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvInstallStatus.text = if (installGranted) getString(R.string.granted) else getString(R.string.not_granted)
         binding.tvInstallStatus.setTextColor(getColor(if (installGranted) R.color.success else R.color.error))
 
-        binding.tvNotificationStatus.text = if (notificationGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvNotificationStatus.text = if (notificationGranted) getString(R.string.granted) else getString(R.string.not_granted)
         binding.tvNotificationStatus.setTextColor(getColor(if (notificationGranted) R.color.success else R.color.error))
 
-        binding.tvBatteryStatus.text = if (batteryGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvBatteryStatus.text = if (batteryGranted) getString(R.string.granted) else getString(R.string.not_granted)
         binding.tvBatteryStatus.setTextColor(getColor(if (batteryGranted) R.color.success else R.color.error))
 
         val allGranted = storageGranted && overlayGranted && installGranted && notificationGranted && batteryGranted
@@ -299,7 +299,7 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (binding.btnRequestPermission.text != "所有权限已获取") {
+        if (binding.btnRequestPermission.text != getString(R.string.permissions_all_granted)) {
             updatePermissionStatus()
             val batteryOptimized = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -310,7 +310,7 @@ class SplashActivity : AppCompatActivity() {
                 Settings.canDrawOverlays(this) &&
                 (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()) &&
                 batteryOptimized) {
-                binding.tvStatus.text = "权限已获取，正在进入..."
+                binding.tvStatus.text = getString(R.string.permission_ready)
                 skipToMain()
             }
         }
