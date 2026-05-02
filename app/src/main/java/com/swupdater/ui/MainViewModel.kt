@@ -70,7 +70,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (progress.state == DownloadState.DOWNLOADED && progress.filePath.isNotEmpty()) {
                     // 通知媒体库扫描，使 APK 在文件管理器中可见
                     FileUtil.notifyFileScanned(getApplication(), File(progress.filePath))
-                    verifyDownloadedFile(progress.filePath)
+                    
+                    // 只有在我们有游戏的最新版本信息时才进行校验
+                    // 这样可以避免干扰 SettingsActivity 中的自更新下载
+                    if (_latestVersion.value != null) {
+                        verifyDownloadedFile(progress.filePath)
+                    }
                 }
             }
         }

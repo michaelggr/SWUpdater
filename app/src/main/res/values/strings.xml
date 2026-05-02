@@ -152,6 +152,7 @@
     <string name="notification_update_found">发现新版本</string>
     <string name="notification_update_text">最新：%1$s（当前：%2$s）</string>
     <string name="dialog_download_version">版本 %1$s</string>
+    <string name="dialog_download_update_title">下载更新</string>
 
     <!-- 权限引导 -->
     <string name="permission_title">权限说明</string>

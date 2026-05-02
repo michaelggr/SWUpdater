@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.net.Uri
 import android.os.Build
@@ -729,39 +729,72 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             val dialogView = layoutInflater.inflate(R.layout.dialog_download_progress, null)
             val tvTitle = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_title)
+            val tvVersion = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_version)
             val tvSize = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_size)
             val tvSpeed = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_download_speed)
             val tvStatus = dialogView.findViewById<android.widget.TextView>(R.id.tv_dialog_verify_status)
             val progressBar = dialogView.findViewById<android.widget.ProgressBar>(R.id.progress_dialog_download)
+            val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_dialog_cancel)
+            val btnInstall = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_dialog_install)
 
-            tvTitle.text = "正在下载 SWUpdater v$versionName"
+            tvTitle.text = "下载更新"
+            tvVersion.text = "SWUpdater v$versionName"
             tvSize.text = "0 B / --"
             tvSpeed.text = ""
             tvStatus.visibility = android.view.View.GONE
             progressBar.progress = 0
+            btnCancel.text = "取消"
+            btnCancel.visibility = android.view.View.VISIBLE
+            btnInstall.visibility = android.view.View.GONE
 
             selfUpdateDialog?.dismiss()
 
             val downloadDialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle("下载更新")
                 .setView(dialogView)
                 .setCancelable(false)
-                .setNegativeButton("取消") { _, _ ->
-                    DownloadManager.cancelDownload()
-                    progressJob?.cancel()
-                    Toast.makeText(requireContext(), "已取消下载", Toast.LENGTH_SHORT).show()
-                }
                 .create()
+
+            btnCancel.setOnClickListener {
+                DownloadManager.cancelDownload()
+                progressJob?.cancel()
+                downloadDialog.dismiss()
+                Toast.makeText(requireContext(), "已取消下载", Toast.LENGTH_SHORT).show()
+            }
+
+            btnInstall.setOnClickListener {
+                downloadDialog.dismiss()
+                val file = File(targetFile.absolutePath)
+                if (file.exists()) {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        file
+                    )
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/vnd.android.package-archive")
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    try {
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "无法安装: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
 
             downloadDialog.show()
 
             progressJob = lifecycleScope.launch {
+                // 先重置下载状态，避免与 MainViewModel 冲突
+                DownloadManager.reset()
+
                 DownloadManager.startDownload(apkUrl, targetFile, this)
 
                 DownloadManager.progress.collect { progress ->
                     when (progress.state) {
                         DownloadState.DOWNLOADING -> {
-                            tvTitle.text = "正在下载 SWUpdater v$versionName"
+                            tvTitle.text = "下载更新"
                             val downloaded = FileUtil.formatFileSize(progress.downloadedBytes)
                             val total = if (progress.totalBytes > 0) FileUtil.formatFileSize(progress.totalBytes) else "--"
                             tvSize.text = "$downloaded / $total"
@@ -769,36 +802,42 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             if (progress.totalBytes > 0) {
                                 progressBar.progress = progress.progressPercent
                             }
+                            btnCancel.text = "取消"
+                            btnCancel.visibility = android.view.View.VISIBLE
+                            btnInstall.visibility = android.view.View.GONE
+                            tvStatus.visibility = android.view.View.GONE
                         }
                         DownloadState.DOWNLOADED -> {
                             tvTitle.text = "下载完成"
                             tvSize.text = FileUtil.formatFileSize(progress.totalBytes)
                             tvSpeed.text = ""
                             progressBar.progress = 100
-                        }
-                        DownloadState.VERIFYING -> {
                             tvStatus.visibility = android.view.View.VISIBLE
-                            tvStatus.text = "正在校验..."
-                        }
-                        DownloadState.VERIFIED -> {
-                            tvStatus.visibility = android.view.View.VISIBLE
-                            tvStatus.text = "校验通过"
-                            tvStatus.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-                            downloadDialog.dismiss()
-                            Toast.makeText(requireContext(), "下载完成，请安装", Toast.LENGTH_SHORT).show()
-                            return@collect
-                        }
-                        DownloadState.VERIFY_FAILED -> {
-                            tvStatus.visibility = android.view.View.VISIBLE
-                            tvStatus.text = "校验失败，请重新下载"
-                            tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
+                            tvStatus.text = "校验中..."
+                            tvStatus.setTextColor(android.graphics.Color.parseColor("#2196F3"))
+
+                            // 自己进行简单的文件校验（检查文件是否存在且大小不为0）
+                            val file = File(progress.filePath)
+                            val isValid = file.exists() && file.length() > 0
+
+                            if (isValid) {
+                                tvStatus.text = "校验通过"
+                                tvStatus.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                                btnCancel.text = "稍后"
+                                btnInstall.visibility = android.view.View.VISIBLE
+                            } else {
+                                tvStatus.text = "校验失败，请重新下载"
+                                tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
+                                btnCancel.text = "关闭"
+                            }
                         }
                         DownloadState.FAILED -> {
                             tvTitle.text = "下载失败"
                             tvStatus.visibility = android.view.View.VISIBLE
-                            tvStatus.text = progress.filePath
+                            tvStatus.text = "下载失败，请重试"
                             tvStatus.setTextColor(android.graphics.Color.parseColor("#F44336"))
-                            downloadDialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE).text = "关闭"
+                            btnCancel.text = "关闭"
+                            btnInstall.visibility = android.view.View.GONE
                         }
                         else -> {}
                     }

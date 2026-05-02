@@ -664,6 +664,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding = db
 
         val latest = viewModel.latestVersion.value
+        db.tvDialogDownloadTitle.text = getString(R.string.dialog_download_update_title)
         db.tvDialogDownloadVersion.text = if (latest != null) {
             getString(R.string.dialog_download_version, latest.versionName)
         } else {
@@ -697,7 +698,9 @@ class MainActivity : AppCompatActivity() {
                 db.tvDialogDownloadSpeed.text = FileUtil.formatSpeed(progress.speed)
                 db.tvDialogVerifyStatus.visibility = View.GONE
                 db.btnDialogInstall.visibility = View.GONE
+                db.btnDialogCancel.visibility = View.VISIBLE
                 db.btnDialogCancel.text = getString(R.string.cancel)
+                db.tvDialogDownloadTitle.text = getString(R.string.dialog_download_update_title)
             }
             DownloadState.DOWNLOADED -> {
                 db.progressDialogDownload.progress = 100
@@ -705,17 +708,20 @@ class MainActivity : AppCompatActivity() {
                     FileUtil.formatFileSize(progress.downloadedBytes),
                     FileUtil.formatFileSize(progress.totalBytes))
                 db.tvDialogDownloadSpeed.text = ""
+                db.tvDialogDownloadTitle.text = getString(R.string.status_downloaded)
             }
             DownloadState.VERIFYING -> {
                 db.tvDialogVerifyStatus.visibility = View.VISIBLE
                 db.tvDialogVerifyStatus.text = getString(R.string.verifying_integrity)
                 db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.info))
+                db.btnDialogInstall.visibility = View.GONE
             }
             DownloadState.VERIFIED -> {
                 db.tvDialogVerifyStatus.visibility = View.VISIBLE
                 db.tvDialogVerifyStatus.text = getString(R.string.integrity_pass)
                 db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
                 db.btnDialogInstall.visibility = View.VISIBLE
+                db.btnDialogCancel.visibility = View.VISIBLE
                 db.btnDialogCancel.text = getString(R.string.dialog_btn_later)
                 db.tvDialogDownloadTitle.text = getString(R.string.status_downloaded)
             }
@@ -723,10 +729,14 @@ class MainActivity : AppCompatActivity() {
                 db.tvDialogVerifyStatus.visibility = View.VISIBLE
                 db.tvDialogVerifyStatus.text = getString(R.string.integrity_fail)
                 db.tvDialogVerifyStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
+                db.btnDialogInstall.visibility = View.GONE
+                db.btnDialogCancel.visibility = View.VISIBLE
                 db.btnDialogCancel.text = getString(R.string.ok)
             }
             DownloadState.FAILED -> {
                 db.tvDialogDownloadTitle.text = getString(R.string.status_error)
+                db.btnDialogInstall.visibility = View.GONE
+                db.btnDialogCancel.visibility = View.VISIBLE
                 db.btnDialogCancel.text = getString(R.string.ok)
             }
             else -> {}
