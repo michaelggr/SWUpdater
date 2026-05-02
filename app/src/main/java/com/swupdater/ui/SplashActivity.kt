@@ -120,33 +120,33 @@ class SplashActivity : AppCompatActivity() {
         val allGranted = storageGranted && overlayGranted && installGranted && notificationGranted && batteryGranted
         binding.btnRequestPermission.isEnabled = !allGranted
         if (allGranted) {
-            binding.btnRequestPermission.text = "所有权限已获取"
+            binding.btnRequestPermission.text = getString(R.string.permissions_all_granted)
             binding.btnSkip.visibility = View.GONE
         }
     }
 
     private fun showPermissionExplainDialog() {
         val message = HtmlCompat.fromHtml("""
-            <b>存储权限（所有文件访问）</b><br/>
-            用于保存壁纸到公共下载目录和保存安装包<br/><br/>
-            <b>悬浮窗权限</b><br/>
-            用于显示下载进度和安装完成通知<br/><br/>
-            <b>安装未知应用权限</b><br/>
-            用于安装APK更新包<br/><br/>
-            <b>通知权限</b><br/>
-            用于显示下载和安装进度通知<br/><br/>
-            <b>后台保活权限</b><br/>
-            防止应用被系统清理，确保更新检测和下载正常运行<br/><br/>
-            <font color="#666666">提示：ROOT用户可以跳过部分权限</font>
+            <b>${getString(R.string.permission_storage)}</b><br/>
+            ${getString(R.string.permission_storage_desc)}<br/><br/>
+            <b>${getString(R.string.permission_overlay)}</b><br/>
+            ${getString(R.string.permission_overlay_desc)}<br/><br/>
+            <b>${getString(R.string.permission_install)}</b><br/>
+            ${getString(R.string.permission_install_desc)}<br/><br/>
+            <b>${getString(R.string.permission_notification)}</b><br/>
+            ${getString(R.string.permission_notification_desc)}<br/><br/>
+            <b>${getString(R.string.permission_battery)}</b><br/>
+            ${getString(R.string.permission_battery_desc)}<br/><br/>
+            <font color="#666666">${getString(R.string.permission_root_hint)}</font>
         """.trimIndent(), HtmlCompat.FROM_HTML_MODE_COMPACT)
 
         AlertDialog.Builder(this)
-            .setTitle("权限说明")
+            .setTitle(R.string.permission_title)
             .setMessage(message)
-            .setPositiveButton("开始授权") { _, _ ->
+            .setPositiveButton(R.string.permission_start) { _, _ ->
                 requestPermissionsStepByStep()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -235,18 +235,18 @@ class SplashActivity : AppCompatActivity() {
 
     private fun onAllEssentialPermissionsGranted() {
         AppLog.i(TAG, "所有必要权限已获取，准备进入主页")
-        binding.tvStatus.text = "权限获取完成，正在进入..."
+        binding.tvStatus.text = getString(R.string.permission_ready)
         skipToMain()
     }
 
     private fun showStorageDeniedDialog() {
         AlertDialog.Builder(this)
-            .setTitle("存储权限被拒绝")
-            .setMessage("没有存储权限，壁纸将保存到应用私有目录，无法保存到公共下载目录。是否继续？")
-            .setPositiveButton("继续") { _, _ ->
+            .setTitle(R.string.permission_storage_denied_title)
+            .setMessage(R.string.permission_storage_denied_message)
+            .setPositiveButton(R.string.continue_btn) { _, _ ->
                 onAllEssentialPermissionsGranted()
             }
-            .setNegativeButton("重新获取") { _, _ ->
+            .setNegativeButton(R.string.retry) { _, _ ->
                 requestStoragePermission()
             }
             .setCancelable(false)
@@ -255,12 +255,12 @@ class SplashActivity : AppCompatActivity() {
 
     private fun showOverlayDeniedDialog() {
         AlertDialog.Builder(this)
-            .setTitle("悬浮窗权限被拒绝")
-            .setMessage("没有悬浮窗权限，可能无法正常显示通知。是否继续？")
-            .setPositiveButton("继续") { _, _ ->
+            .setTitle(R.string.permission_overlay_denied_title)
+            .setMessage(R.string.permission_overlay_denied_message)
+            .setPositiveButton(R.string.continue_btn) { _, _ ->
                 requestStoragePermission()
             }
-            .setNegativeButton("重新获取") { _, _ ->
+            .setNegativeButton(R.string.retry) { _, _ ->
                 requestOverlayPermission()
             }
             .setCancelable(false)
@@ -269,12 +269,12 @@ class SplashActivity : AppCompatActivity() {
 
     private fun showSkipConfirmDialog() {
         AlertDialog.Builder(this)
-            .setTitle("确认跳过？")
-            .setMessage("跳过后壁纸将保存到应用私有目录，部分功能可能受限。")
-            .setPositiveButton("确认跳过") { _, _ ->
+            .setTitle(R.string.permission_skip_title)
+            .setMessage(R.string.permission_skip_message)
+            .setPositiveButton(R.string.confirm_skip) { _, _ ->
                 skipToMain()
             }
-            .setNegativeButton("继续获取权限", null)
+            .setNegativeButton(R.string.continue_permission, null)
             .show()
     }
 

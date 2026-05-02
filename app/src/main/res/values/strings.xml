@@ -11,52 +11,52 @@
     <string name="btn_check_update">检查更新</string>
     <string name="btn_download">下载</string>
     <string name="btn_download_update">立即下载</string>
-    <string name="btn_install">安装更新</string>
+    <string name="btn_install">安装</string>
     <string name="btn_open_game">启动游戏</string>
-    <string name="btn_stop_download">取消下载</string>
+    <string name="btn_stop_download">停止下载</string>
     <string name="status_up_to_date">已是最新版本</string>
     <string name="status_update_available">发现新版本</string>
-    <string name="status_checking">正在检查更新…</string>
-    <string name="status_downloading">正在下载…</string>
+    <string name="status_checking">检查中…</string>
+    <string name="status_downloading">下载中…</string>
     <string name="status_downloaded">下载完成</string>
-    <string name="status_installing">正在安装…</string>
-    <string name="status_error">发生错误</string>
+    <string name="status_installing">安装中…</string>
+    <string name="status_error">错误</string>
     <string name="status_network_error">网络连接失败</string>
-    <string name="status_parse_error">版本信息解析失败</string>
+    <string name="status_parse_error">版本解析失败</string>
 
     <!-- 下载 -->
     <string name="download_progress">下载进度</string>
     <string name="download_speed_format">%1$s/s</string>
     <string name="download_size_format">%1$s / %2$s</string>
-    <string name="download_notification_channel">下载通知</string>
-    <string name="download_notification_title">魔灵召唤更新下载</string>
+    <string name="download_notification_channel">下载</string>
+    <string name="download_notification_title">下载更新</string>
     <string name="download_complete_notification">下载完成，点击安装</string>
     <string name="install_complete_notification">安装完成</string>
-    <string name="verifying_integrity">正在校验完整性…</string>
-    <string name="integrity_pass">完整性校验通过</string>
-    <string name="integrity_fail">完整性校验失败，请重新下载</string>
+    <string name="verifying_integrity">校验中…</string>
+    <string name="integrity_pass">校验通过</string>
+    <string name="integrity_fail">校验失败，请重试</string>
 
     <!-- 设置 -->
-    <string name="pref_auto_check_on_launch">打开APP时自动检测更新</string>
-    <string name="pref_auto_check_on_launch_summary">每次打开应用时自动检查是否有新版本</string>
-    <string name="pref_auto_check">自动检查更新</string>
-    <string name="pref_auto_check_summary">后台持续检查是否有新版本</string>
-    <string name="pref_check_interval">检查频率</string>
+    <string name="pref_auto_check_on_launch">启动时检测</string>
+    <string name="pref_auto_check_on_launch_summary">打开应用时自动检测新版本</string>
+    <string name="pref_auto_check">后台检测</string>
+    <string name="pref_auto_check_summary">周期性地在后台检测新版本</string>
+    <string name="pref_check_interval">检测频率</string>
     <string name="pref_auto_download">自动下载</string>
     <string name="pref_auto_download_summary">发现新版本时自动下载</string>
-    <string name="pref_wifi_only">仅 Wi-Fi 下载</string>
-    <string name="pref_wifi_only_summary">仅在 Wi-Fi 网络下下载更新包</string>
+    <string name="pref_wifi_only">仅 Wi-Fi</string>
+    <string name="pref_wifi_only_summary">仅在 Wi-Fi 下自动下载</string>
     <string name="pref_verify_integrity">校验完整性</string>
-    <string name="pref_verify_integrity_summary">下载完成后校验安装包的 MD5/SHA256</string>
-    <string name="pref_source_url">更新源地址</string>
+    <string name="pref_verify_integrity_summary">下载后校验 MD5/SHA256</string>
+    <string name="pref_source_url">更新源</string>
     <string name="pref_package_name">游戏包名</string>
     <string name="pref_about">关于</string>
     <string name="pref_version">应用版本</string>
-    <string name="pref_clear_cache">清除下载缓存</string>
-    <string name="pref_clear_cache_summary">清除已下载的安装包文件</string>
+    <string name="pref_clear_cache">清除缓存</string>
+    <string name="pref_clear_cache_summary">清除已下载的安装包</string>
     <string name="cache_cleared">缓存已清除</string>
 
-    <!-- 检查频率选项 -->
+    <!-- 检测频率选项 -->
     <string name="interval_1h">每小时</string>
     <string name="interval_3h">每3小时</string>
     <string name="interval_6h">每6小时</string>
@@ -65,25 +65,25 @@
 
     <!-- 对话框 -->
     <string name="dialog_update_title">发现新版本</string>
-    <string name="dialog_update_message">最新版本：%1$s\n当前版本：%2$s\n\n是否立即下载更新？</string>
-    <string name="dialog_update_market_title">前往应用商店</string>
-    <string name="dialog_update_market_message">最新版本：%1$s\n当前版本：%2$s\n\n将跳转至 Google Play 下载更新，是否继续？</string>
+    <string name="dialog_update_message">最新：%1$s\n当前：%2$s\n\n是否下载？</string>
+    <string name="dialog_update_market_title">应用商店</string>
+    <string name="dialog_update_market_message">最新：%1$s\n当前：%2$s\n\n跳转至 Play 商店下载？</string>
     <string name="dialog_btn_download">下载</string>
     <string name="dialog_btn_open_store">前往商店</string>
     <string name="dialog_btn_later">稍后</string>
     <string name="dialog_install_title">安装更新</string>
-    <string name="dialog_install_message">下载完成，版本 %1$s\n大小：%2$s\n\n是否立即安装？</string>
+    <string name="dialog_install_message">版本 %1$s\n大小：%2$s\n\n是否安装？</string>
     <string name="dialog_btn_install">安装</string>
     <string name="dialog_btn_cancel">取消</string>
     <string name="dialog_permission_title">需要权限</string>
-    <string name="dialog_install_permission_message">安装更新需要「安装未知应用」权限，是否前往设置？</string>
-    <string name="dialog_storage_permission_message">下载更新包需要存储权限，是否前往设置？</string>
+    <string name="dialog_install_permission_message">安装需要「安装未知应用」权限，是否前往设置？</string>
+    <string name="dialog_storage_permission_message">下载需要存储权限，是否前往设置？</string>
     <string name="dialog_btn_go_settings">去设置</string>
 
     <!-- 更新日志 -->
     <string name="changelog_title">更新日志</string>
     <string name="changelog_loading">加载中…</string>
-    <string name="changelog_empty">暂无更新日志</string>
+    <string name="changelog_empty">暂无</string>
 
     <!-- 通用 -->
     <string name="yes">是</string>
@@ -92,54 +92,90 @@
     <string name="cancel">取消</string>
     <string name="retry">重试</string>
     <string name="loading">加载中…</string>
-    <string name="error_occurred">发生错误：%1$s</string>
+    <string name="error_occurred">错误：%1$s</string>
+    <string name="not_granted">✗ 未获取</string>
+    <string name="granted">✓ 已获取</string>
+
+    <!-- 引导页 -->
+    <string name="splash_permission_hint">首次使用需要获取以下权限</string>
+    <string name="splash_root_hint">检测到 ROOT 权限，可跳过部分权限</string>
+    <string name="splash_permission_list_title">需要获取的权限</string>
+    <string name="splash_status_hint">请点击下方按钮获取权限</string>
+    <string name="splash_request_permission">获取权限</string>
+    <string name="splash_skip_root">跳过（ROOT 用户）</string>
 
     <!-- 日志模式 -->
-    <string name="log_mode_hint">开启日志模式后，检查更新将检测所有数据源并记录详细日志</string>
+    <string name="log_mode_hint">开启后检测所有数据源并记录详细日志</string>
     <string name="source_check_title">数据源检测结果</string>
 
     <!-- 壁纸 -->
     <string name="btn_random_wallpaper">随机壁纸</string>
     <string name="btn_download_wallpaper">下载壁纸</string>
-    <string name="btn_open_folder">打开缓存目录</string>
-    <string name="btn_apply_wallpaper">应用到手机壁纸</string>
-    <string name="wallpaper_apply_success">壁纸已应用到手机</string>
-    <string name="wallpaper_apply_failed">应用壁纸失败</string>
-    <string name="wallpaper_apply_no_wallpaper">当前没有壁纸可应用</string>
-    <string name="wallpaper_changing">正在更换壁纸…</string>
+    <string name="btn_open_folder">打开目录</string>
+    <string name="btn_apply_wallpaper">应用壁纸</string>
+    <string name="wallpaper_apply_success">壁纸已应用</string>
+    <string name="wallpaper_apply_failed">应用失败</string>
+    <string name="wallpaper_apply_no_wallpaper">没有可用壁纸</string>
+    <string name="wallpaper_changing">更换中…</string>
     <string name="wallpaper_changed">壁纸已更换</string>
-    <string name="wallpaper_change_failed">壁纸更换失败</string>
-    <string name="wallpaper_downloading">正在保存壁纸…</string>
-    <string name="wallpaper_downloaded">壁纸已保存到下载目录</string>
-    <string name="wallpaper_download_failed">壁纸保存失败</string>
-    <string name="wallpaper_preloading">正在预加载壁纸…</string>
-    <string name="pref_auto_change_wallpaper">启动时自动更换壁纸</string>
-    <string name="pref_auto_change_wallpaper_summary">每次打开应用自动随机更换背景壁纸</string>
-    <string name="pref_wallpaper_alpha">内容透明度</string>
-    <string name="pref_wallpaper_alpha_summary">数值越小壁纸越清晰，数值越大内容越清晰。控制所有界面的透明度</string>
-    <string name="pref_wallpaper_cache_count">缓存壁纸数量</string>
-    <string name="pref_wallpaper_cache_count_summary">本地缓存的壁纸数量上限</string>
+    <string name="wallpaper_change_failed">更换失败</string>
+    <string name="wallpaper_downloading">保存中…</string>
+    <string name="wallpaper_downloaded">已保存到下载目录</string>
+    <string name="wallpaper_download_failed">保存失败</string>
+    <string name="wallpaper_preloading">预加载中…</string>
+    <string name="pref_auto_change_wallpaper">启动时更换</string>
+    <string name="pref_auto_change_wallpaper_summary">打开应用时自动更换壁纸</string>
+    <string name="pref_wallpaper_alpha">透明度</string>
+    <string name="pref_wallpaper_alpha_summary">控制界面透明度</string>
+    <string name="pref_wallpaper_cache_count">缓存数量</string>
+    <string name="pref_wallpaper_cache_count_summary">本地缓存壁纸数量上限</string>
     <string name="pref_clear_wallpaper_cache">清除壁纸缓存</string>
-    <string name="pref_clear_wallpaper_cache_summary">清除缓存在公用 Pictures/SWUpdater/wallpapers 的壁纸文件</string>
+    <string name="pref_clear_wallpaper_cache_summary">清除已缓存的壁纸文件</string>
     <string name="wallpaper_cache_cleared">壁纸缓存已清除</string>
-    <string name="pref_wallpaper_download_dir">壁纸下载目录</string>
-    <string name="pref_wallpaper_download_dir_summary">壁纸保存的目标目录（默认公用 Download/SWUpdater/wallpapers）</string>
+    <string name="pref_wallpaper_download_dir">壁纸目录</string>
+    <string name="pref_wallpaper_download_dir_summary">壁纸保存位置</string>
 
     <!-- 底部 -->
     <string name="design_by_text">Design by 啊啊啊黑猫警长魔灵</string>
-    <string name="btn_toolbox">魔灵工具箱</string>
-    <string name="btn_feedback">反馈留言</string>
+    <string name="btn_toolbox">工具箱</string>
+    <string name="btn_feedback">反馈</string>
 
     <!-- 保活 -->
-    <string name="keep_alive_notification_channel">后台保活</string>
+    <string name="keep_alive_notification_channel">后台运行</string>
     <string name="keep_alive_notification_title">魔灵召唤 · 自动更新</string>
-    <string name="keep_alive_notification_text">正在后台运行，自动检查更新</string>
+    <string name="keep_alive_notification_text">后台运行中</string>
 
-    <string name="notification_installing">正在安装更新…</string>
-    <string name="notification_download_failed">下载失败，请重试</string>
-    <string name="notification_auto_install_failed">自动安装失败%1$s</string>
+    <string name="notification_installing">安装中…</string>
+    <string name="notification_download_failed">下载失败</string>
+    <string name="notification_auto_install_failed">自动安装失败：%1$s</string>
     <string name="notification_preparing_download">准备下载…</string>
-    <string name="notification_update_found">魔灵召唤 - 发现新版本</string>
-    <string name="notification_update_text">最新版本: %1$s (当前: %2$s)</string>
+    <string name="notification_update_found">发现新版本</string>
+    <string name="notification_update_text">最新：%1$s（当前：%2$s）</string>
     <string name="dialog_download_version">版本 %1$s</string>
+
+    <!-- 权限引导 -->
+    <string name="permission_title">权限说明</string>
+    <string name="permission_storage">存储权限</string>
+    <string name="permission_storage_desc">保存壁纸和安装包到公共目录</string>
+    <string name="permission_overlay">悬浮窗权限</string>
+    <string name="permission_overlay_desc">显示下载和安装通知</string>
+    <string name="permission_install">安装权限</string>
+    <string name="permission_install_desc">安装 APK 更新包</string>
+    <string name="permission_notification">通知权限</string>
+    <string name="permission_notification_desc">显示进度通知</string>
+    <string name="permission_battery">后台保活</string>
+    <string name="permission_battery_desc">防止系统清理，确保后台检测</string>
+    <string name="permission_root_hint">ROOT 用户可跳过部分权限</string>
+    <string name="permission_start">开始授权</string>
+    <string name="permissions_all_granted">所有权限已获取</string>
+    <string name="permission_ready">权限获取完成，正在进入…</string>
+    <string name="permission_storage_denied_title">存储权限被拒绝</string>
+    <string name="permission_storage_denied_message">将保存到应用私有目录，无法保存到公共目录</string>
+    <string name="permission_overlay_denied_title">悬浮窗权限被拒绝</string>
+    <string name="permission_overlay_denied_message">可能无法正常显示通知</string>
+    <string name="permission_skip_title">确认跳过？</string>
+    <string name="permission_skip_message">跳过后将保存到应用私有目录，部分功能可能受限</string>
+    <string name="confirm_skip">确认跳过</string>
+    <string name="continue_permission">继续获取权限</string>
+    <string name="continue_btn">继续</string>
 </resources>
