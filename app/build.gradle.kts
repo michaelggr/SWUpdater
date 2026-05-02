@@ -11,12 +11,12 @@ val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrN
 
 android {
     namespace = "com.swupdater"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.swupdater"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = versionCodeProp ?: 3
         versionName = versionNameProp
 
