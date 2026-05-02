@@ -68,6 +68,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             DownloadManager.progress.collect { progress ->
                 if (progress.state == DownloadState.DOWNLOADED && progress.filePath.isNotEmpty()) {
+                    // 通知媒体库扫描，使 APK 在文件管理器中可见
+                    FileUtil.notifyFileScanned(getApplication(), File(progress.filePath))
                     verifyDownloadedFile(progress.filePath)
                 }
             }
@@ -222,8 +224,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     openInBrowser(url)
                 }
             }
-            else -> {
-                // OFFICIAL_WEB / APP_STORE / ACCELERATOR → 浏览器打开
+            DownloadChannel.ChannelType.OFFICIAL_WEB,
+            DownloadChannel.ChannelType.APP_STORE,
+            DownloadChannel.ChannelType.ACCELERATOR -> {
                 openInBrowser(channel.url)
             }
         }
@@ -282,21 +285,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             val latest = _latestVersion.value
             var isVerified: Boolean
+            var verifyDetail = ""
             try {
                 isVerified = true
                 if (latest != null && latest.fileSize > 0) {
                     if (!ChecksumUtil.verifyFileSize(file, latest.fileSize)) {
                         isVerified = false
+                        verifyDetail = "文件大小不匹配: 期望=${latest.fileSize}, 实际=${file.length()}"
                     }
                 }
                 if (isVerified && latest != null && latest.md5.isNotEmpty()) {
-                    if (!ChecksumUtil.verifyMd5(file, latest.md5)) isVerified = false
+                    val result = ChecksumUtil.verifyMd5Detail(file, latest.md5)
+                    if (!result.success) {
+                        isVerified = false
+                        verifyDetail = result.detail
+                    }
                 }
                 if (isVerified && latest != null && latest.sha256.isNotEmpty()) {
-                    if (!ChecksumUtil.verifySha256(file, latest.sha256)) isVerified = false
+                    val result = ChecksumUtil.verifySha256Detail(file, latest.sha256)
+                    if (!result.success) {
+                        isVerified = false
+                        verifyDetail = result.detail
+                    }
                 }
             } catch (e: Exception) {
                 isVerified = false
+                verifyDetail = "校验异常: ${e.message}"
+            }
+
+            if (!isVerified) {
+                AppLog.e(TAG, "完整性校验失败: $verifyDetail")
             }
 
             DownloadManager._progress.value = DownloadManager.progress.value.copy(
