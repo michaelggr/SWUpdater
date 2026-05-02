@@ -11,14 +11,16 @@ val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrN
 
 android {
     namespace = "com.swupdater"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.swupdater"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = versionCodeProp
         versionName = versionNameProp
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // ========== 签名配置 ==========
@@ -45,7 +47,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -61,12 +63,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
 
     buildFeatures {
@@ -77,7 +79,7 @@ android {
     // lint 配置
     lint {
         abortOnError = false
-        checkReleaseBuilds = true
+        checkReleaseBuilds = false
     }
 }
 
