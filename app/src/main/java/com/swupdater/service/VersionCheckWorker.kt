@@ -133,8 +133,9 @@ class VersionCheckWorker(
                 val autoDownload = prefs.getBoolean("pref_auto_download", false)
                 val wifiOnly = prefs.getBoolean("pref_wifi_only", true)
 
-                // 判断是否可以自动下载
-                val canAutoDownload = if (autoDownload) {
+                // 判断是否可以自动下载：前提是没有正在下载且本地没有新版本安装包
+                val localApkExists = com.swupdater.util.FileUtil.getApkFile(applicationContext, latestVersion.versionName).exists()
+                val canAutoDownload = if (autoDownload && !localApkExists && !DownloadService.isDownloading) {
                     if (wifiOnly) {
                         val isWifi = DownloadService.isWifiConnected(applicationContext)
                         AppLog.i(TAG, "自动下载: 开启, 仅WiFi: $isWifi")
@@ -144,7 +145,13 @@ class VersionCheckWorker(
                         true
                     }
                 } else {
-                    AppLog.i(TAG, "自动下载: 未开启，仅发送通知")
+                    if (localApkExists) {
+                        AppLog.i(TAG, "本地已有该版本安装包，跳过下载")
+                    } else if (DownloadService.isDownloading) {
+                        AppLog.i(TAG, "正在下载中，跳过重复下载")
+                    } else {
+                        AppLog.i(TAG, "自动下载: 未开启，仅发送通知")
+                    }
                     false
                 }
 
@@ -153,8 +160,8 @@ class VersionCheckWorker(
                     AppLog.i(TAG, "WiFi 下自动下载: ${latestVersion.versionName}")
                     DownloadService.start(applicationContext, latestVersion.downloadUrl, latestVersion.versionName)
                     // 下载通知由 DownloadService 管理，不再发送更新提醒通知
-                } else {
-                    // 不自动下载：发送更新提醒通知
+                } else if (!localApkExists) {
+                    // 不自动下载且本地没有安装包：发送更新提醒通知
                     notifyUpdate(latestVersion.versionName, if (installedInfo.isInstalled) installedInfo.versionName else null)
                 }
             } else {
