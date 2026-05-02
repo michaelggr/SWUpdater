@@ -69,9 +69,9 @@
         android:requestLegacyExternalStorage="true"
         tools:targetApi="34">
 
-        <!-- 主界面 -->
+        <!-- 引导界面 -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.SplashActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -79,6 +79,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 主界面 -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <!-- 设置界面 -->
         <activity

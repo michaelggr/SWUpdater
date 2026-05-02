@@ -55,6 +55,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // 权限请求返回后，直接尝试下载
+        lifecycleScope.launch {
+            performDownloadWallpaper()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -113,11 +122,11 @@ class MainActivity : AppCompatActivity() {
                         BitmapFactory.decodeFile(wallpaperFile.absolutePath)
                     }
                     if (bitmap != null) {
-                    showWallpaperBitmap(bitmap)
-                    Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
-                } else {
-                    Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
-                }
+                        showWallpaperBitmap(bitmap)
+                        Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
+                    } else {
+                        Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                    }
                 } else {
                     Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
                 }
@@ -193,21 +202,46 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun downloadCurrentWallpaper() {
-        lifecycleScope.launch {
-            try {
-                val result = WallpaperManager.downloadCurrentWallpaper(this@MainActivity)
-                if (result.success) {
-                    AppLog.i("MainActivity", "壁纸已保存: ${result.filePath}")
-                    Snackbar.make(binding.root, "壁纸已保存: ${result.fileName}", Snackbar.LENGTH_LONG)
-                        .setAction("查看") { openWallpaperFolder() }
-                        .show()
-                } else {
-                    Snackbar.make(binding.root, "壁纸保存失败: ${result.error}", Snackbar.LENGTH_SHORT).show()
+        // 检查是否有存储权限
+        if (!WallpaperManager.hasStoragePermission(this)) {
+            // 提示需要权限，然后去请求
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("需要存储权限")
+                .setMessage("保存壁纸到公共目录需要存储权限，请授权")
+                .setPositiveButton("去授权") { _, _ ->
+                    val intent = WallpaperManager.getStoragePermissionIntent(this)
+                    if (intent != null) {
+                        storagePermissionLauncher.launch(intent)
+                    } else {
+                        // 如果无法获取权限Intent，直接尝试下载（保存到私有目录）
+                        lifecycleScope.launch {
+                            performDownloadWallpaper()
+                        }
+                    }
                 }
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, "壁纸保存失败: ${e.message}", Snackbar.LENGTH_SHORT).show()
-                AppLog.e("MainActivity", "壁纸保存失败: ${e.message}")
+                .setNegativeButton("取消", null)
+                .show()
+        } else {
+            lifecycleScope.launch {
+                performDownloadWallpaper()
             }
+        }
+    }
+
+    private suspend fun performDownloadWallpaper() {
+        try {
+            val result = WallpaperManager.downloadCurrentWallpaper(this@MainActivity)
+            if (result.success) {
+                AppLog.i("MainActivity", "壁纸已保存: ${result.filePath}")
+                Snackbar.make(binding.root, "壁纸已保存: ${result.fileName}", Snackbar.LENGTH_LONG)
+                    .setAction("查看") { openWallpaperFolder() }
+                    .show()
+            } else {
+                Snackbar.make(binding.root, "壁纸保存失败: ${result.error}", Snackbar.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Snackbar.make(binding.root, "壁纸保存失败: ${e.message}", Snackbar.LENGTH_SHORT).show()
+            AppLog.e("MainActivity", "壁纸保存失败: ${e.message}")
         }
     }
 

@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.os.Build
@@ -35,10 +35,41 @@ object FileUtil {
     }
 
     /**
-     * 清除下载缓存
+     * 清除魔灵召唤下载缓存
      */
     fun clearDownloadCache(context: Context): Int {
         val dir = getDownloadDir(context)
+        var count = 0
+        dir.listFiles()?.forEach { file ->
+            if (file.isFile && file.name.endsWith(".apk")) {
+                if (file.delete()) count++
+            }
+        }
+        return count
+    }
+
+    /**
+     * 获取应用自身的下载目录
+     */
+    private fun getSelfUpdateDir(context: Context): File {
+        // 应用自身的更新包存储在应用私有目录的 files 目录下
+        val dir = File(context.filesDir, "self_updates")
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    /**
+     * 获取应用自身更新的 APK 文件
+     */
+    fun getSelfUpdateApkFile(context: Context, versionName: String): File {
+        return File(getSelfUpdateDir(context), "swupdater_${versionName}.apk")
+    }
+
+    /**
+     * 清除应用自身的旧安装包
+     */
+    fun clearSelfUpdateCache(context: Context): Int {
+        val dir = getSelfUpdateDir(context)
         var count = 0
         dir.listFiles()?.forEach { file ->
             if (file.isFile && file.name.endsWith(".apk")) {

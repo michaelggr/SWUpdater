@@ -453,21 +453,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "v${BuildConfig.VERSION_NAME}"
                 isSelectable = true
                 setOnPreferenceClickListener {
-                    // 触发版本检查
-                    val versionCheckService = VersionCheckService()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        try {
-                            val latestVersion = versionCheckService.checkLatestVersion(requireContext())
-                            if (latestVersion != null && latestVersion.downloadUrl.isNotEmpty()) {
-                                // 显示下载渠道选择对话框
-                                showDownloadChannelDialog(latestVersion)
-                            } else {
-                                Toast.makeText(requireContext(), "无法获取最新版本信息", Toast.LENGTH_SHORT).show()
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(requireContext(), "检查版本失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    // 检查应用自身的新版本
+                    checkSelfUpdate(BuildConfig.VERSION_NAME)
                     true
                 }
                 otherCategory.addPreference(this)
@@ -552,6 +539,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val result = withContext(Dispatchers.IO) {
+                        // 检查版本前先清理旧安装包
+                        val clearedCount = FileUtil.clearSelfUpdateCache(requireContext())
+                        if (clearedCount > 0) {
+                            AppLog.i("Settings", "已清除 $clearedCount 个旧安装包")
+                        }
+
                         // GitHub API 镜像列表（原版 + 国内加速），依次尝试
                         val apiMirrors = listOf(
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
