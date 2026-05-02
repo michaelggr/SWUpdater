@@ -552,6 +552,18 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                         Toast.makeText(requireContext(), "打开渠道失败: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
+                DownloadChannel.ChannelType.OFFICIAL_WEB,
+                DownloadChannel.ChannelType.APP_STORE,
+                DownloadChannel.ChannelType.ACCELERATOR -> {
+                    // 打开渠道URL（应用市场等）
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(channel.url))
+                        requireActivity().startActivity(intent)
+                        Toast.makeText(requireContext(), "打开『${channel.name}』", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "打开渠道失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
 
