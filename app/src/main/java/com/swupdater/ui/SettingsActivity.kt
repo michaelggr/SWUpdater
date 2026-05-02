@@ -507,6 +507,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val result = withContext(Dispatchers.IO) {
+                        // 检测版本前先清理旧版安装包
+                        val clearedCount = FileUtil.clearSelfUpdateCache(requireContext())
+                        if (clearedCount > 0) {
+                            AppLog.i(TAG, "已清理 $clearedCount 个旧版安装包")
+                        }
+
                         val apiMirrors = listOf(
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",

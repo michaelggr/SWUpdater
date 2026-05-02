@@ -1,4 +1,4 @@
-package com.swupdater.receiver
+﻿package com.swupdater.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -41,6 +41,7 @@ class InstallReceiver : BroadcastReceiver() {
             }
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 AppLog.i(TAG, "本应用已更新: $packageName")
+                onSelfUpdated(context)
             }
         }
     }
@@ -59,5 +60,16 @@ class InstallReceiver : BroadcastReceiver() {
 
         // 显示安装完成通知
         DownloadNotificationHelper.showInstallCompleteNotification(context)
+    }
+
+    /**
+     * 本应用更新完成
+     * - 清理旧版本安装包
+     */
+    private fun onSelfUpdated(context: Context) {
+        val count = FileUtil.clearSelfUpdateCache(context)
+        if (count > 0) {
+            AppLog.i(TAG, "已清除 $count 个旧版本安装包")
+        }
     }
 }

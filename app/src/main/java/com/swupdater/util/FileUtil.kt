@@ -95,6 +95,47 @@ object FileUtil {
         return count
     }
 
+    fun clearSelfUpdateCache(context: Context): Int {
+        var count = 0
+
+        // 清除公共目录下本应用的更新包
+        val publicDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (publicDir.exists() && publicDir.isDirectory) {
+            publicDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.endsWith(".apk", ignoreCase = true) &&
+                    file.name.contains("swupdater", ignoreCase = true)) {
+                    if (file.delete()) {
+                        count++
+                        Log.i(TAG, "已删除旧版安装包: ${file.name}")
+                    }
+                }
+            }
+        }
+
+        // 清除应用私有目录下本应用的更新包
+        val privateDir = File(
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/updates"
+        )
+        if (privateDir.exists() && privateDir.isDirectory) {
+            privateDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.endsWith(".apk", ignoreCase = true) &&
+                    file.name.contains("swupdater", ignoreCase = true)) {
+                    if (file.delete()) {
+                        count++
+                        Log.i(TAG, "已删除旧版安装包: ${file.name}")
+                    }
+                }
+            }
+        }
+
+        Log.i(TAG, "清除旧版安装包完成: 共删除 $count 个文件")
+        return count
+    }
+
     fun getCacheSize(context: Context): Long {
         var totalSize = 0L
 
