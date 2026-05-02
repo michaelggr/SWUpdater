@@ -110,4 +110,10 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // 游戏配置抓取功能依赖
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
+    implementation("org.msgpack:msgpack-core:0.9.8")
+    implementation("io.netty:netty-all:4.1.108.Final")
 }
