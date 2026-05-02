@@ -1,10 +1,12 @@
 ﻿package com.swupdater.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
@@ -95,6 +97,10 @@ class SplashActivity : AppCompatActivity() {
         val notificationGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         } else true
+        val batteryGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } else true
 
         binding.tvStorageStatus.text = if (storageGranted) "✓ 已获取" else "✗ 未获取"
         binding.tvStorageStatus.setTextColor(getColor(if (storageGranted) R.color.success else R.color.error))
@@ -108,7 +114,10 @@ class SplashActivity : AppCompatActivity() {
         binding.tvNotificationStatus.text = if (notificationGranted) "✓ 已获取" else "✗ 未获取"
         binding.tvNotificationStatus.setTextColor(getColor(if (notificationGranted) R.color.success else R.color.error))
 
-        val allGranted = storageGranted && overlayGranted && installGranted && notificationGranted
+        binding.tvBatteryStatus.text = if (batteryGranted) "✓ 已获取" else "✗ 未获取"
+        binding.tvBatteryStatus.setTextColor(getColor(if (batteryGranted) R.color.success else R.color.error))
+
+        val allGranted = storageGranted && overlayGranted && installGranted && notificationGranted && batteryGranted
         binding.btnRequestPermission.isEnabled = !allGranted
         if (allGranted) {
             binding.btnRequestPermission.text = "所有权限已获取"
@@ -126,6 +135,8 @@ class SplashActivity : AppCompatActivity() {
             用于安装APK更新包<br/><br/>
             <b>通知权限</b><br/>
             用于显示下载和安装进度通知<br/><br/>
+            <b>后台保活权限</b><br/>
+            防止应用被系统清理，确保更新检测和下载正常运行<br/><br/>
             <font color="#666666">提示：ROOT用户可以跳过部分权限</font>
         """.trimIndent(), HtmlCompat.FROM_HTML_MODE_COMPACT)
 
@@ -194,8 +205,32 @@ class SplashActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            onAllEssentialPermissionsGranted()
+            requestBatteryOptimization()
         }
+    }
+
+    private fun requestBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    batteryPermissionLauncher.launch(intent)
+                    return
+                } catch (e: Exception) {
+                    AppLog.e(TAG, "请求电池优化权限失败", e)
+                }
+            }
+        }
+        onAllEssentialPermissionsGranted()
+    }
+
+    private val batteryPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        onAllEssentialPermissionsGranted()
     }
 
     private fun onAllEssentialPermissionsGranted() {
@@ -266,9 +301,15 @@ class SplashActivity : AppCompatActivity() {
         super.onResume()
         if (binding.btnRequestPermission.text != "所有权限已获取") {
             updatePermissionStatus()
+            val batteryOptimized = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                pm.isIgnoringBatteryOptimizations(packageName)
+            } else true
+
             if (WallpaperManager.hasStoragePermission(this) &&
                 Settings.canDrawOverlays(this) &&
-                (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls())) {
+                (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()) &&
+                batteryOptimized) {
                 binding.tvStatus.text = "权限已获取，正在进入..."
                 skipToMain()
             }
