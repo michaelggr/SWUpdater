@@ -224,8 +224,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     openInBrowser(url)
                 }
             }
-            else -> {
-                // OFFICIAL_WEB / APP_STORE / ACCELERATOR → 浏览器打开
+            DownloadChannel.ChannelType.OFFICIAL_WEB,
+            DownloadChannel.ChannelType.APP_STORE,
+            DownloadChannel.ChannelType.ACCELERATOR -> {
                 openInBrowser(channel.url)
             }
         }
