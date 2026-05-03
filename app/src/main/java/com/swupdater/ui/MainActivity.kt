@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnStartCapture.setOnClickListener {
             if (!RootInstallHelper.isDeviceRooted()) {
-                Snackbar.make(binding.root, "需要 Root 权限才能使用此功能", Snackbar.LENGTH_SHORT).show()
+                SnackbarHelper.warning(binding.root, "需要 Root 权限才能使用此功能").show()
                 return@setOnClickListener
             }
             CaptureService.start(this)
@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyRandomWallpaper() {
         binding.btnRandomWallpaper.isEnabled = false
-        Snackbar.make(binding.root, R.string.wallpaper_changing, Snackbar.LENGTH_SHORT).show()
+        SnackbarHelper.info(binding.root, getString(R.string.wallpaper_changing)).show()
 
         lifecycleScope.launch {
             try {
@@ -179,16 +179,16 @@ class MainActivity : AppCompatActivity() {
                     }
                     if (bitmap != null) {
                         showWallpaperBitmap(bitmap)
-                        Snackbar.make(binding.root, R.string.wallpaper_changed, Snackbar.LENGTH_SHORT).show()
+                        SnackbarHelper.success(binding.root, getString(R.string.wallpaper_changed)).show()
                     } else {
-                        Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                        SnackbarHelper.error(binding.root, getString(R.string.wallpaper_change_failed)).show()
                     }
                 } else {
-                    Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                    SnackbarHelper.error(binding.root, getString(R.string.wallpaper_change_failed)).show()
                 }
             } catch (e: Exception) {
                 AppLog.e("MainActivity", "更换壁纸失败: ${e.message}")
-                Snackbar.make(binding.root, R.string.wallpaper_change_failed, Snackbar.LENGTH_SHORT).show()
+                SnackbarHelper.error(binding.root, getString(R.string.wallpaper_change_failed)).show()
             } finally {
                 binding.btnRandomWallpaper.isEnabled = true
             }
@@ -223,7 +223,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyWallpaperToSystem() {
         if (binding.ivWallpaper.visibility != View.VISIBLE) {
-            Snackbar.make(binding.root, getString(R.string.wallpaper_apply_no_wallpaper), Snackbar.LENGTH_SHORT).show()
+            SnackbarHelper.warning(binding.root, getString(R.string.wallpaper_apply_no_wallpaper)).show()
             return
         }
 
@@ -231,7 +231,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val wallpaperFile = WallpaperManager.getCurrentWallpaperFile(this@MainActivity)
                 if (wallpaperFile == null || !wallpaperFile.exists()) {
-                    Snackbar.make(binding.root, getString(R.string.wallpaper_apply_no_wallpaper), Snackbar.LENGTH_SHORT).show()
+                    SnackbarHelper.warning(binding.root, getString(R.string.wallpaper_apply_no_wallpaper)).show()
                     return@launch
                 }
 
@@ -245,13 +245,13 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (result) {
-                    Snackbar.make(binding.root, getString(R.string.wallpaper_apply_success), Snackbar.LENGTH_SHORT).show()
+                    SnackbarHelper.success(binding.root, getString(R.string.wallpaper_apply_success)).show()
                     AppLog.i("MainActivity", "壁纸已应用到手机系统壁纸")
                 } else {
-                    Snackbar.make(binding.root, getString(R.string.wallpaper_apply_failed), Snackbar.LENGTH_SHORT).show()
+                    SnackbarHelper.error(binding.root, getString(R.string.wallpaper_apply_failed)).show()
                 }
             } catch (e: Exception) {
-                Snackbar.make(binding.root, "${getString(R.string.wallpaper_apply_failed)}: ${e.message}", Snackbar.LENGTH_SHORT).show()
+                SnackbarHelper.error(binding.root, "${getString(R.string.wallpaper_apply_failed)}: ${e.message}").show()
                 AppLog.e("MainActivity", "应用壁纸失败: ${e.message}")
             }
         }
@@ -289,14 +289,14 @@ class MainActivity : AppCompatActivity() {
             val result = WallpaperManager.downloadCurrentWallpaper(this@MainActivity)
             if (result.success) {
                 AppLog.i("MainActivity", "壁纸已保存: ${result.filePath}")
-                Snackbar.make(binding.root, "壁纸已保存: ${result.fileName}", Snackbar.LENGTH_LONG)
+                SnackbarHelper.success(binding.root, "壁纸已保存: ${result.fileName}", Snackbar.LENGTH_LONG)
                     .setAction("查看") { openWallpaperFolder() }
                     .show()
             } else {
-                Snackbar.make(binding.root, "壁纸保存失败: ${result.error}", Snackbar.LENGTH_SHORT).show()
+                SnackbarHelper.error(binding.root, "壁纸保存失败: ${result.error}").show()
             }
         } catch (e: Exception) {
-            Snackbar.make(binding.root, "壁纸保存失败: ${e.message}", Snackbar.LENGTH_SHORT).show()
+            SnackbarHelper.error(binding.root, "壁纸保存失败: ${e.message}").show()
             AppLog.e("MainActivity", "壁纸保存失败: ${e.message}")
         }
     }
@@ -401,7 +401,7 @@ class MainActivity : AppCompatActivity() {
             // 所有方式都失败，显示路径并支持复制
             if (!opened) {
                 AppLog.w("MainActivity", "无法打开目录，显示路径: ${dir.absolutePath}")
-                Snackbar.make(binding.root, "壁纸目录: ${dir.absolutePath}", Snackbar.LENGTH_LONG)
+                SnackbarHelper.info(binding.root, "壁纸目录: ${dir.absolutePath}", Snackbar.LENGTH_LONG)
                     .setAction("复制路径") {
                         val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("壁纸目录", dir.absolutePath))
@@ -410,7 +410,7 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             AppLog.e("MainActivity", "打开目录失败: ${e.message}")
-            Snackbar.make(binding.root, "无法打开目录: ${e.message}", Snackbar.LENGTH_SHORT).show()
+            SnackbarHelper.error(binding.root, "无法打开目录: ${e.message}").show()
         }
     }
 
