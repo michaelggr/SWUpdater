@@ -305,49 +305,83 @@ class MainActivity : AppCompatActivity() {
         try {
             val dir = WallpaperManager.getWallpaperDownloadDir(this@MainActivity)
             if (!dir.exists()) dir.mkdirs()
+            AppLog.i("MainActivity", "打开壁纸目录: ${dir.absolutePath}")
 
             var opened = false
 
+            // 方式1: 使用 Storage Access Framework 打开下载目录
             if (!opened) {
                 try {
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity,
-                        "${packageName}.fileprovider",
-                        dir
-                    )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "*/*")
+                        setDataAndType(
+                            android.net.Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload"),
+                            "vnd.android.document/directory"
+                        )
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     if (intent.resolveActivity(packageManager) != null) {
                         startActivity(intent)
                         opened = true
+                        AppLog.i("MainActivity", "通过 SAF 打开下载目录成功")
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLog.d("MainActivity", "SAF 方式失败: ${e.message}")
+                }
             }
 
+            // 方式2: 尝试各品牌文件管理器，并传入目录路径
             if (!opened) {
+                val dirPath = dir.absolutePath
                 val fileManagers = listOf(
-                    "com.google.android.apps.nbu.files" to "com.google.android.apps.nbu.files.home.HomeActivity",
-                    "com.sec.android.app.myfiles" to "com.sec.android.app.myfiles.common.MainActivity",
-                    "com.huawei.hidisk" to "com.huawei.hidisk.HomeActivity",
-                    "com.xiaomi.fileexplorer" to "com.xiaomi.fileexplorer.FileExplorerActivity",
-                    "com.oppo.filemanager" to "com.coloros.filemanager.main.MainActivity",
-                    "com.vivo.filemanager" to "com.vivo.filemanager.activity.MainActivity"
+                    Triple(
+                        "com.google.android.apps.nbu.files",
+                        "com.google.android.apps.nbu.files.home.HomeActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.sec.android.app.myfiles",
+                        "com.sec.android.app.myfiles.common.MainActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.huawei.hidisk",
+                        "com.huawei.hidisk.HomeActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.xiaomi.fileexplorer",
+                        "com.xiaomi.fileexplorer.FileExplorerActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.oppo.filemanager",
+                        "com.coloros.filemanager.main.MainActivity",
+                        dirPath
+                    ),
+                    Triple(
+                        "com.vivo.filemanager",
+                        "com.vivo.filemanager.activity.MainActivity",
+                        dirPath
+                    )
                 )
-                for ((pkg, activity) in fileManagers) {
+                for ((pkg, activity, path) in fileManagers) {
                     try {
                         val intent = Intent().apply {
                             component = ComponentName(pkg, activity)
+                            putExtra("dir_path", path)
+                            putExtra("folder_path", path)
+                            putExtra("current_dir", path)
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         startActivity(intent)
                         opened = true
+                        AppLog.i("MainActivity", "通过文件管理器打开: $pkg")
                         break
                     } catch (_: Exception) { continue }
                 }
             }
 
+            // 方式3: 使用 ACTION_OPEN_DOCUMENT 作为回退
             if (!opened) {
                 try {
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -358,10 +392,15 @@ class MainActivity : AppCompatActivity() {
                     }
                     startActivity(intent)
                     opened = true
-                } catch (_: Exception) {}
+                    AppLog.i("MainActivity", "通过文档选择器打开")
+                } catch (e: Exception) {
+                    AppLog.d("MainActivity", "文档选择器失败: ${e.message}")
+                }
             }
 
+            // 所有方式都失败，显示路径并支持复制
             if (!opened) {
+                AppLog.w("MainActivity", "无法打开目录，显示路径: ${dir.absolutePath}")
                 Snackbar.make(binding.root, "壁纸目录: ${dir.absolutePath}", Snackbar.LENGTH_LONG)
                     .setAction("复制路径") {
                         val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
