@@ -106,13 +106,6 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
-        <!-- 游戏配置抓取服务 -->
-        <service
-            android:name=".capture.CaptureService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:stopWithTask="false" />
-
         <!-- 安装完成广播 -->
         <receiver
             android:name=".receiver.InstallReceiver"
