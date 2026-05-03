@@ -1,7 +1,8 @@
-package com.swupdater.network
+﻿package com.swupdater.network
 
 import android.content.Context
 import android.util.Log
+import androidx.preference.PreferenceManager
 import com.swupdater.model.VersionInfo
 import com.swupdater.util.AppLog
 import kotlinx.coroutines.Dispatchers
@@ -30,8 +31,6 @@ class VersionCheckService {
         // 默认数据源URL（友皆乐）
         const val DEFAULT_SOURCE_URL = "https://play.qpyou.cn/b?i=8387&g=8109&gc=7976"
 
-        // 设置中的 key
-        const val PREFS_NAME = "sw_updater_prefs"
         const val PREF_SOURCE_URL = "pref_source_url"
 
         // 魔灵召唤可能的包名列表（用于本地检测）
@@ -139,7 +138,7 @@ class VersionCheckService {
      */
     private fun getSourceUrl(context: Context?): String {
         if (context != null) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             return prefs.getString(PREF_SOURCE_URL, DEFAULT_SOURCE_URL) ?: DEFAULT_SOURCE_URL
         }
         return DEFAULT_SOURCE_URL

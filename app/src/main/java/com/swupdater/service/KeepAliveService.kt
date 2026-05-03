@@ -30,7 +30,6 @@ class KeepAliveService : Service() {
         private const val CHANNEL_ID = "keep_alive_channel"
         private const val CHANNEL_NAME = "后台保活"
 
-        private const val PREFS_NAME = "sw_updater_prefs"
         private const val PREF_KEEP_ALIVE_ENABLED = "pref_keep_alive_enabled"
         private const val PREF_BOOT_AUTO_START = "pref_boot_auto_start"
         private const val PREF_ROOT_KEEP_ALIVE = "pref_root_keep_alive"
@@ -54,12 +53,12 @@ class KeepAliveService : Service() {
         }
 
         fun isEnabled(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             return prefs.getBoolean(PREF_KEEP_ALIVE_ENABLED, false)
         }
 
         fun setEnabled(context: Context, enabled: Boolean) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             prefs.edit().putBoolean(PREF_KEEP_ALIVE_ENABLED, enabled).apply()
 
             if (enabled) {
@@ -70,22 +69,22 @@ class KeepAliveService : Service() {
         }
 
         fun isBootAutoStartEnabled(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             return prefs.getBoolean(PREF_BOOT_AUTO_START, true)
         }
 
         fun setBootAutoStartEnabled(context: Context, enabled: Boolean) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             prefs.edit().putBoolean(PREF_BOOT_AUTO_START, enabled).apply()
         }
 
         fun isRootKeepAliveEnabled(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             return prefs.getBoolean(PREF_ROOT_KEEP_ALIVE, false)
         }
 
         fun setRootKeepAliveEnabled(context: Context, enabled: Boolean) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             prefs.edit().putBoolean(PREF_ROOT_KEEP_ALIVE, enabled).apply()
         }
 
@@ -160,7 +159,7 @@ class KeepAliveService : Service() {
             startForeground(NOTIFICATION_ID, buildNotification())
         }
 
-        val prefs = getSharedPreferences(BootReceiver.PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val autoCheck = prefs.getBoolean(BootReceiver.PREF_AUTO_CHECK, true)
         if (autoCheck) {
             val intervalHours = prefs.getString(BootReceiver.PREF_CHECK_INTERVAL, "6")?.toLongOrNull() ?: 6L

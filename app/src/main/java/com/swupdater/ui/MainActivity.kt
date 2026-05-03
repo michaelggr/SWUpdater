@@ -183,10 +183,20 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        // 6. 悬浮窗权限检测（警告级别，不影响抓取，只是无法显示悬浮窗）
+        var overlayWarning: String? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                overlayWarning = "⚠️ 未授予悬浮窗权限，无法在游戏上显示抓取状态"
+            }
+        }
+
+        val allWarnings = listOfNotNull(certWarning, overlayWarning)
+
         return CaptureCheckResult(
             canStart = true,
-            hasWarning = certWarning != null,
-            message = certWarning ?: "环境检测通过"
+            hasWarning = allWarnings.isNotEmpty(),
+            message = if (allWarnings.isNotEmpty()) allWarnings.joinToString("\n") else "环境检测通过"
         )
     }
 

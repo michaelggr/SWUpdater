@@ -115,6 +115,12 @@ class CaptureOverlayService : Service() {
     private fun showOverlay() {
         if (overlayView != null) return
 
+        // 检查悬浮窗权限
+        if (!hasOverlayPermission()) {
+            AppLog.w(TAG, "没有悬浮窗权限，跳过悬浮窗显示")
+            return
+        }
+
         val params = createLayoutParams()
 
         // 创建悬浮窗布局
@@ -268,7 +274,7 @@ class CaptureOverlayService : Service() {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
+            WindowManager.LayoutParams.TYPE_PHONE
         }
 
         return WindowManager.LayoutParams(
@@ -362,6 +368,19 @@ class CaptureOverlayService : Service() {
             STATUS_CAPTURING -> "抓取中..."
             STATUS_SUCCESS -> "抓取成功"
             else -> "抓取中"
+        }
+    }
+
+    /**
+     * 检查是否有悬浮窗权限
+     * Android 8+ 需要用户在设置中授权
+     * Android 8以下 只需声明权限即可
+     */
+    private fun hasOverlayPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            android.provider.Settings.canDrawOverlays(this)
+        } else {
+            true
         }
     }
 }

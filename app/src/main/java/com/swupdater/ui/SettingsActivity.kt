@@ -503,46 +503,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 debugCategory.addPreference(this)
             }
 
-            // === 数据源设置 ===
-            val sourceCategory = androidx.preference.PreferenceCategory(context).apply {
-                title = "数据源"
-            }
-            screen.addPreference(sourceCategory)
-
-            androidx.preference.ListPreference(context).apply {
-                key = "pref_source_url"
-                title = getString(R.string.pref_source_url)
-                summary = VersionCheckService.DEFAULT_SOURCE_URL
-                entries = arrayOf(
-                    "友皆乐（官方推荐）",
-                    "备用1",
-                    "备用2"
-                )
-                entryValues = arrayOf(
-                    "https://play.qpyou.cn/b?i=8387&g=8109&gc=7976",
-                    "https://example.com/backup1",
-                    "https://example.com/backup2"
-                )
-                setDefaultValue(VersionCheckService.DEFAULT_SOURCE_URL)
-                setOnPreferenceChangeListener { _, newValue ->
-                    summary = newValue.toString()
-                    true
-                }
-                sourceCategory.addPreference(this)
-            }
-
-            androidx.preference.EditTextPreference(context).apply {
-                key = "pref_package_name"
-                title = getString(R.string.pref_package_name)
-                summary = AppInfoUtil.PACKAGE_NAME_CN
-                setDefaultValue(AppInfoUtil.PACKAGE_NAME_CN)
-                setOnPreferenceChangeListener { _, newValue ->
-                    summary = newValue.toString()
-                    true
-                }
-                sourceCategory.addPreference(this)
-            }
-
             // === 其他 ===
             val otherCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "其他"

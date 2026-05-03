@@ -1,6 +1,7 @@
 package com.swupdater.util
 
 import android.content.Context
+import androidx.preference.PreferenceManager
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
@@ -11,7 +12,6 @@ import java.util.*
 
 object AppLog {
 
-    private const val PREFS_NAME = "sw_updater_prefs"
     private const val PREF_LOG_MODE = "pref_log_mode"
     private const val MAX_LOG_ENTRIES = 500
     private const val LOG_FILE_NAME = "sw_updater.log"
@@ -51,20 +51,20 @@ object AppLog {
      * 初始化日志系统，应在 Application.onCreate 中调用
      */
     fun init(context: Context) {
-        logModeEnabled = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        logModeEnabled = PreferenceManager.getDefaultSharedPreferences(context)
             .getBoolean(PREF_LOG_MODE, false)
         cleanOldEntries()
         cleanOldLogFile(context)
     }
 
     fun isLogModeEnabled(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return PreferenceManager.getDefaultSharedPreferences(context)
             .getBoolean(PREF_LOG_MODE, false)
     }
 
     fun setLogModeEnabled(context: Context, enabled: Boolean) {
         logModeEnabled = enabled
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        PreferenceManager.getDefaultSharedPreferences(context)
             .edit().putBoolean(PREF_LOG_MODE, enabled).apply()
         if (!enabled) {
             clear()
