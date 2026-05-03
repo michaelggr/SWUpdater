@@ -19,6 +19,7 @@
 
     <color name="success">#FF2E7D32</color>
     <color name="warning">#FFF57F17</color>
+    <color name="warning_bg">#26F57F17</color>
     <color name="error">#FFC62828</color>
     <color name="info">#FF1565C0</color>
 
