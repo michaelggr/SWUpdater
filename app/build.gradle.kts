@@ -6,8 +6,8 @@ plugins {
 // ========== 版本号（支持 CI 参数注入） ==========
 // CI 环境通过 -PversionName=x.x.x -PversionCode=xxx 注入
 // 本地开发使用 gradle.properties 中的默认值
-val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "2.4.0" }
-val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 6
+val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "2.5.0" }
+val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 7
 
 android {
     namespace = "com.swupdater"
