@@ -117,6 +117,7 @@ class DownloadService : Service() {
                 when (progress.state) {
                     DownloadState.VERIFIED -> {
                         isDownloading = false
+                        AppLog.i("DownloadService", "下载校验通过，准备处理安装")
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {
@@ -124,34 +125,33 @@ class DownloadService : Service() {
                             stopForeground(false)
                         }
 
-                        // 校验通过后，检查是否需要 Root 自动安装
                         val prefs = getSharedPreferences("sw_updater_prefs", Context.MODE_PRIVATE)
                         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
-                        if (rootAutoInstall && RootInstallHelper.isDeviceRooted() && progress.filePath.isNotEmpty()) {
-                            AppLog.i("DownloadService", "Root 自动安装已开启，开始静默安装...")
-                            // 更新通知：正在安装
+                        val isRooted = RootInstallHelper.isDeviceRooted()
+                        AppLog.i("DownloadService", "安装配置检查: rootAutoInstall=$rootAutoInstall, isRooted=$isRooted, filePath=${progress.filePath}")
+
+                        if (rootAutoInstall && isRooted && progress.filePath.isNotEmpty()) {
+                            AppLog.i("DownloadService", "Root 自动安装已开启，开始静默安装: ${progress.filePath}")
                             DownloadNotificationHelper.updateProgress(this@DownloadService,
                                 progress.copy(state = DownloadState.INSTALLING))
 
-                            // 在 IO 线程执行 Root 安装，安装完成后再 stopSelf
                             serviceScope.launch(Dispatchers.IO) {
+                                AppLog.i("DownloadService", "正在执行 Root 静默安装...")
                                 val result = RootInstallHelper.installSilently(progress.filePath)
                                 if (result.success) {
                                     AppLog.i("DownloadService", "Root 自动安装成功")
                                     DownloadNotificationHelper.showInstallCompleteNotification(this@DownloadService)
-                                    // 安装完成，删除安装包
                                     val apkFile = java.io.File(progress.filePath)
                                     if (apkFile.exists()) apkFile.delete()
-                                    AppLog.i("DownloadService", "安装包已删除")
+                                    AppLog.i("DownloadService", "安装包已删除: ${progress.filePath}")
                                 } else {
                                     AppLog.e("DownloadService", "Root 自动安装失败: ${result.message}")
                                     DownloadNotificationHelper.showInstallFailedNotification(this@DownloadService, result.message)
                                 }
-                                // 安装完成后才停止服务
                                 stopSelf()
                             }
                         } else {
-                            // 非 Root 或未开启自动安装，显示完成通知，用户手动点击安装
+                            AppLog.i("DownloadService", "非 Root 自动安装模式，显示通知等待用户手动安装")
                             DownloadNotificationHelper.updateProgress(this@DownloadService, progress)
                             stopSelf()
                         }

@@ -275,8 +275,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun verifyDownloadedFile(filePath: String) {
         viewModelScope.launch {
             val file = File(filePath)
-            if (!file.exists()) return@launch
+            if (!file.exists()) {
+                AppLog.e(TAG, "校验失败: 文件不存在 $filePath")
+                return@launch
+            }
 
+            AppLog.i(TAG, "开始校验下载文件: $filePath (大小: ${FileUtil.formatFileSize(file.length())})")
             DownloadManager._progress.value = DownloadManager.progress.value.copy(
                 state = DownloadState.VERIFYING
             )
@@ -286,22 +290,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 isVerified = true
                 if (latest != null && latest.fileSize > 0) {
-                    if (!ChecksumUtil.verifyFileSize(file, latest.fileSize)) {
-                        isVerified = false
-                    }
+                    val sizeMatch = ChecksumUtil.verifyFileSize(file, latest.fileSize)
+                    AppLog.i(TAG, "文件大小校验: 期望=${latest.fileSize}, 实际=${file.length()}, 结果=$sizeMatch")
+                    if (!sizeMatch) isVerified = false
+                } else {
+                    AppLog.i(TAG, "跳过文件大小校验: latest=$latest, fileSize=${latest?.fileSize}")
                 }
                 if (isVerified && latest != null && latest.md5.isNotEmpty()) {
-                    if (!ChecksumUtil.verifyMd5(file, latest.md5)) isVerified = false
+                    val md5Match = ChecksumUtil.verifyMd5(file, latest.md5)
+                    AppLog.i(TAG, "MD5 校验: 期望=${latest.md5}, 结果=$md5Match")
+                    if (!md5Match) isVerified = false
+                } else {
+                    AppLog.i(TAG, "跳过MD5校验: md5=${latest?.md5}")
                 }
                 if (isVerified && latest != null && latest.sha256.isNotEmpty()) {
-                    if (!ChecksumUtil.verifySha256(file, latest.sha256)) isVerified = false
+                    val sha256Match = ChecksumUtil.verifySha256(file, latest.sha256)
+                    AppLog.i(TAG, "SHA256 校验: 期望=${latest.sha256}, 结果=$sha256Match")
+                    if (!sha256Match) isVerified = false
+                } else {
+                    AppLog.i(TAG, "跳过SHA256校验: sha256=${latest?.sha256}")
                 }
             } catch (e: Exception) {
+                AppLog.e(TAG, "校验异常: ${e.message}")
                 isVerified = false
             }
 
+            val finalState = if (isVerified) DownloadState.VERIFIED else DownloadState.VERIFY_FAILED
+            AppLog.i(TAG, "校验结果: ${if (isVerified) "通过" else "失败"}")
             DownloadManager._progress.value = DownloadManager.progress.value.copy(
-                state = if (isVerified) DownloadState.VERIFIED else DownloadState.VERIFY_FAILED
+                state = finalState
             )
         }
     }
@@ -309,40 +326,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun installApk(): Boolean {
         val progress = DownloadManager.progress.value
         val filePath = progress.filePath
-        if (filePath.isEmpty()) return false
+        AppLog.i(TAG, "installApk 被调用: filePath=$filePath, state=${progress.state}")
+
+        if (filePath.isEmpty()) {
+            AppLog.e(TAG, "installApk 失败: 文件路径为空")
+            return false
+        }
 
         val file = File(filePath)
-        if (!file.exists()) return false
+        if (!file.exists()) {
+            AppLog.e(TAG, "installApk 失败: 文件不存在 $filePath")
+            return false
+        }
 
         val context = getApplication<Application>()
 
-        // 优先使用 Root 静默安装
         val prefs = context.getSharedPreferences("sw_updater_prefs", android.content.Context.MODE_PRIVATE)
         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
-        if (rootAutoInstall && com.swupdater.util.RootInstallHelper.isDeviceRooted()) {
-            AppLog.i(TAG, "使用 Root 静默安装...")
+        val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
+        AppLog.i(TAG, "安装配置: rootAutoInstall=$rootAutoInstall, isRooted=$isRooted")
+
+        if (rootAutoInstall && isRooted) {
+            AppLog.i(TAG, "使用 Root 静默安装: $filePath")
             DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
             viewModelScope.launch {
                 val result = com.swupdater.util.RootInstallHelper.installSilently(filePath)
                 if (result.success) {
                     AppLog.i(TAG, "Root 安装成功")
                     refreshInstalledInfo()
-                    // 安装完成，删除安装包
                     val apkFile = File(filePath)
                     if (apkFile.exists()) apkFile.delete()
                     AppLog.i(TAG, "安装包已删除")
-                    // 通知栏显示安装完成
                     com.swupdater.service.DownloadNotificationHelper.showInstallCompleteNotification(context)
                 } else {
-                    AppLog.e(TAG, "Root 安装失败: ${result.message}")
-                    // Root 安装失败，回退到系统安装器
+                    AppLog.e(TAG, "Root 安装失败: ${result.message}，回退到系统安装器")
                     installViaSystemInstaller(context, file)
                 }
             }
             return true
         }
 
-        // 无 Root，走系统安装器
+        AppLog.i(TAG, "使用系统安装器安装: $filePath")
         return installViaSystemInstaller(context, file)
     }
 
@@ -351,11 +375,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     private fun installViaSystemInstaller(context: android.content.Context, file: File): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!context.packageManager.canRequestPackageInstalls()) return false
+            val canInstall = context.packageManager.canRequestPackageInstalls()
+            AppLog.i(TAG, "系统安装器: Android ${Build.VERSION.SDK_INT}, canRequestPackageInstalls=$canInstall")
+            if (!canInstall) {
+                AppLog.e(TAG, "系统安装器: 缺少安装未知应用权限")
+                return false
+            }
         }
 
         return try {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            AppLog.i(TAG, "系统安装器: URI=$uri, file=${file.absolutePath}")
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -364,8 +394,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             context.startActivity(intent)
             val progress = DownloadManager.progress.value
             DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
+            AppLog.i(TAG, "系统安装器: Intent 已发送")
             true
         } catch (e: Exception) {
+            AppLog.e(TAG, "系统安装器启动失败: ${e.message}")
             false
         }
     }

@@ -520,6 +520,7 @@ class MainActivity : AppCompatActivity() {
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.info))
                     }
                     DownloadState.VERIFIED -> {
+                        AppLog.i("MainActivity", "下载校验通过，显示安装按钮")
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.integrity_pass)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.success))
@@ -527,14 +528,17 @@ class MainActivity : AppCompatActivity() {
                         showInstallDialog()
                     }
                     DownloadState.VERIFY_FAILED -> {
+                        AppLog.e("MainActivity", "下载校验失败")
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.integrity_fail)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.error))
                     }
                     DownloadState.INSTALLING -> {
+                        AppLog.i("MainActivity", "正在安装中...")
                         binding.tvStatus.text = getString(R.string.status_installing)
                     }
                     DownloadState.FAILED -> {
+                        AppLog.e("MainActivity", "下载失败")
                         binding.tvStatus.text = getString(R.string.status_error)
                         binding.viewStatusDot.backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.error)
                         binding.tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.error))
