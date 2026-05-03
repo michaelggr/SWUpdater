@@ -1,4 +1,4 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.app.*
 import android.content.Context
@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
 import com.swupdater.model.DownloadState
 import com.swupdater.network.DownloadManager
 import com.swupdater.util.AppLog
@@ -111,7 +112,7 @@ class DownloadService : Service() {
                             stopForeground(false)
                         }
 
-                        val prefs = getSharedPreferences("sw_updater_prefs", Context.MODE_PRIVATE)
+                        val prefs = PreferenceManager.getDefaultSharedPreferences(this@DownloadService)
                         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
                         val isRooted = RootInstallHelper.isDeviceRooted()
 
@@ -128,6 +129,14 @@ class DownloadService : Service() {
                                     val apkFile = java.io.File(progress.filePath)
                                     if (apkFile.exists()) apkFile.delete()
                                     AppLog.i(TAG, "安装包已清理: ${apkFile.name}")
+                                    // 根据设置决定是否自动启动游戏
+                                    val autoLaunch = PreferenceManager
+                                        .getDefaultSharedPreferences(this@DownloadService)
+                                        .getBoolean("pref_auto_launch_game", true)
+                                    if (autoLaunch) {
+                                        AppLog.i(TAG, "自动启动游戏已开启，正在启动...")
+                                        com.swupdater.util.AppInfoUtil.launchGame(this@DownloadService)
+                                    }
                                 } else {
                                     AppLog.e(TAG, "Root 自动安装失败: ${result.message}")
                                     DownloadNotificationHelper.showInstallFailedNotification(this@DownloadService, result.message)

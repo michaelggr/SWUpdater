@@ -175,6 +175,10 @@ class CaptureService : Service() {
                 AppLog.i(TAG, "抓取服务启动成功")
                 updateNotification("抓取服务运行中，启动游戏即可抓取配置")
 
+                // 显示悬浮窗
+                CaptureOverlayService.show(this@CaptureService)
+                CaptureOverlayService.updateStatus(this@CaptureService, CaptureOverlayService.STATUS_WAITING, "等待游戏数据...")
+
                 // 启动监控循环
                 startMonitoring()
 
@@ -216,6 +220,9 @@ class CaptureService : Service() {
 
         AppLog.i(TAG, "已抓取: $summary")
         updateNotification("已抓取: $summary")
+
+        // 更新悬浮窗状态
+        CaptureOverlayService.updateStatus(this, CaptureOverlayService.STATUS_CAPTURING, "已抓取: $summary")
     }
 
     private fun saveCapturedData() {
@@ -225,6 +232,8 @@ class CaptureService : Service() {
         val file = repository.saveCapture(this, capturedData.toMap())
         if (file != null) {
             AppLog.i(TAG, "抓取数据已保存: ${file.absolutePath}")
+            // 悬浮窗显示成功+分享按钮
+            CaptureOverlayService.showSuccess(this, file.absolutePath)
         } else {
             AppLog.e(TAG, "抓取数据保存失败")
         }
@@ -256,6 +265,12 @@ class CaptureService : Service() {
         if (!isKeepCertEnabled(this)) {
             CertificateManager.uninstallCaFromSystem(this)
         }
+
+        // 延迟隐藏悬浮窗（给用户时间查看结果和分享）
+        if (!hasGameData) {
+            CaptureOverlayService.hide(this)
+        }
+        // 如果有数据，悬浮窗保持显示成功状态，用户手动关闭或超时后隐藏
 
         parser?.reset()
         parser = null

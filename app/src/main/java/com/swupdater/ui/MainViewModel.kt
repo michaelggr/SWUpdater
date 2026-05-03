@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.preference.PreferenceManager
 import com.swupdater.model.*
 import com.swupdater.network.DownloadChannels
 import com.swupdater.network.DownloadManager
@@ -297,7 +298,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val context = getApplication<Application>()
-        val prefs = context.getSharedPreferences("sw_updater_prefs", android.content.Context.MODE_PRIVATE)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
         val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
 
@@ -313,6 +314,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (apkFile.exists()) apkFile.delete()
                     AppLog.i(TAG, "安装包已清理")
                     DownloadNotificationHelper.showInstallCompleteNotification(context)
+                    // 根据设置决定是否自动启动游戏
+                    val autoLaunch = PreferenceManager
+                        .getDefaultSharedPreferences(context)
+                        .getBoolean("pref_auto_launch_game", true)
+                    if (autoLaunch) {
+                        AppLog.i(TAG, "自动启动游戏已开启，正在启动...")
+                        launchGame()
+                    }
                 } else {
                     AppLog.e(TAG, "Root 安装失败: ${result.message}，回退到系统安装器")
                     installViaSystemInstaller(context, file)

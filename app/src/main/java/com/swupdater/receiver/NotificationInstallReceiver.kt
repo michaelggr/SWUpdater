@@ -71,6 +71,13 @@ class NotificationInstallReceiver : BroadcastReceiver() {
                     DownloadNotificationHelper.showInstallCompleteNotification(context)
                     // 安装完成后删除安装包
                     deleteApkFile(filePath)
+                    // 根据设置决定是否自动启动游戏
+                    val autoLaunch = PreferenceManager.getDefaultSharedPreferences(context)
+                        .getBoolean("pref_auto_launch_game", true)
+                    if (autoLaunch) {
+                        AppLog.i(TAG, "自动启动游戏已开启，正在启动...")
+                        com.swupdater.util.AppInfoUtil.launchGame(context)
+                    }
                 } else {
                     AppLog.e(TAG, "Root 安装失败: ${result.message}")
                     // 回退到系统安装器

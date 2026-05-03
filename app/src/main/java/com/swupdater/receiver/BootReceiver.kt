@@ -3,6 +3,7 @@ package com.swupdater.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.preference.PreferenceManager
 import com.swupdater.service.KeepAliveService
 import com.swupdater.service.VersionCheckWorker
 import com.swupdater.util.AppLog
@@ -11,7 +12,6 @@ class BootReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "BootReceiver"
-        const val PREFS_NAME = "sw_updater_prefs"
         const val PREF_AUTO_CHECK = "pref_auto_check"
         const val PREF_CHECK_INTERVAL = "pref_check_interval"
     }
@@ -21,7 +21,7 @@ class BootReceiver : BroadcastReceiver() {
 
         AppLog.section(TAG, "设备启动完成")
 
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 
         val autoCheck = prefs.getBoolean(PREF_AUTO_CHECK, true)
         val intervalHours = prefs.getString(PREF_CHECK_INTERVAL, "6")?.toLongOrNull() ?: 6L

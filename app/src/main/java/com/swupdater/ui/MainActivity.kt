@@ -840,7 +840,7 @@ class MainActivity : AppCompatActivity() {
             permissionLauncher.launch(permissions.toTypedArray())
         } else {
             // 检查设置：是否在打开APP时自动检测更新
-            val prefs = getSharedPreferences("sw_updater_prefs", MODE_PRIVATE)
+            val prefs = PreferenceManager.getDefaultSharedPreferences(this)
             val autoCheckOnLaunch = prefs.getBoolean("pref_auto_check_on_launch", true)
             if (autoCheckOnLaunch) {
                 viewModel.checkUpdate()

@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
+import androidx.preference.PreferenceManager
 import com.swupdater.R
 import com.swupdater.receiver.BootReceiver
 import com.swupdater.ui.MainActivity

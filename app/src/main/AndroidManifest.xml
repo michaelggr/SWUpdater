@@ -113,6 +113,11 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <!-- 抓取悬浮窗服务 -->
+        <service
+            android:name=".capture.CaptureOverlayService"
+            android:exported="false" />
+
         <!-- 安装完成广播 -->
         <receiver
             android:name=".receiver.InstallReceiver"

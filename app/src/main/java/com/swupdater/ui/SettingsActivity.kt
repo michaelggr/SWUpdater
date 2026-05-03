@@ -298,6 +298,20 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
+            // 安装后自动启动游戏
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_auto_launch_game"
+                title = "安装后自动启动游戏"
+                summary = "安装完成后自动启动游戏，包括Root静默安装和系统安装"
+                setDefaultValue(true)
+                setOnPreferenceChangeListener { _, newValue ->
+                    val enabled = newValue as Boolean
+                    AppLog.i("Settings", "安装后自动启动游戏已${if (enabled) "开启" else "关闭"}")
+                    true
+                }
+                keepAliveCategory.addPreference(this)
+            }
+
             // 保活说明
             Preference(context).apply {
                 key = "pref_keep_alive_info"
