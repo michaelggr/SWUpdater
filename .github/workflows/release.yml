@@ -56,13 +56,16 @@ jobs:
           echo "📋 Version: $VERSION (code: $CODE)"
 
       # ========== 签名配置 ==========
-      - name: Decode keystore
-        if: env.KEYSTORE_BASE64 != ''
+      - name: Decode keystore (if available)
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.jks
-          echo "✅ Keystore decoded"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.jks
+            echo "✅ Keystore decoded"
+          else
+            echo "⚠️ No keystore found, will build unsigned"
+          fi
 
       - name: Build Release APK
         env:
@@ -71,9 +74,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease \
-            -PversionName=${{ steps.version.outputs.version }} \
-            -PversionCode=${{ steps.version.outputs.versionCode }}
+          # 如果有签名配置，构建 release；否则构建 debug
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            ./gradlew assembleRelease \
+              -PversionName=${{ steps.version.outputs.version }} \
+              -PversionCode=${{ steps.version.outputs.versionCode }}
+          else
+            ./gradlew assembleDebug \
+              -PversionName=${{ steps.version.outputs.version }} \
+              -PversionCode=${{ steps.version.outputs.versionCode }}
+            # 把 debug apk 重命名为 release 格式，方便上传
+            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/SWUpdater-v${{ steps.version.outputs.version }}.apk
+          fi
 
       # ========== 生成更新日志 ==========
       - name: Generate Changelog
@@ -168,6 +180,7 @@ jobs:
             - 建议在 WiFi 环境下自动下载更新包
           files: |
             app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
           draft: false
           prerelease: false
         env:
