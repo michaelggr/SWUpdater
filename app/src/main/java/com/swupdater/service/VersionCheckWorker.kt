@@ -3,6 +3,7 @@ package com.swupdater.service
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.preference.PreferenceManager
 import androidx.work.*
 import com.swupdater.model.AppInstallInfo
 import com.swupdater.network.VersionCheckService
@@ -32,7 +33,9 @@ class VersionCheckWorker(
         const val KEY_LATEST_VERSION = "latest_version"
         const val KEY_CURRENT_VERSION = "current_version"
 
-        const val PREFS_NAME = "sw_updater_prefs"
+        fun getDefaultPrefs(context: Context): SharedPreferences {
+            return PreferenceManager.getDefaultSharedPreferences(context)
+        }
 
         /**
          * 调度定期检查任务
@@ -122,7 +125,7 @@ class VersionCheckWorker(
                 AppLog.i(TAG, "发现新版本: ${latestVersion.versionName}")
 
                 // 读取用户设置
-                val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val prefs = getDefaultPrefs(applicationContext)
                 val autoDownload = prefs.getBoolean("pref_auto_download", false)
                 val wifiOnly = prefs.getBoolean("pref_wifi_only", true)
 
