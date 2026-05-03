@@ -16,6 +16,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.PreferenceManager
 import com.google.android.material.snackbar.Snackbar
 import com.swupdater.R
 import com.swupdater.databinding.ActivityMainBinding
@@ -582,12 +583,26 @@ class MainActivity : AppCompatActivity() {
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.info))
                     }
                     DownloadState.VERIFIED -> {
-                        AppLog.i("MainActivity", "下载校验通过，显示安装按钮")
+                        AppLog.i("MainActivity", "下载校验通过")
                         binding.tvVerifyStatus.visibility = View.VISIBLE
                         binding.tvVerifyStatus.text = getString(R.string.integrity_pass)
                         binding.tvVerifyStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.success))
                         binding.btnInstall.visibility = View.VISIBLE
-                        showInstallDialog()
+
+                        // 检查是否启用Root自动安装
+                        val rootAutoInstallEnabled = PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
+                            .getBoolean("pref_root_auto_install", false)
+                        val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
+                        
+                        if (rootAutoInstallEnabled && isRooted) {
+                            AppLog.i("MainActivity", "Root自动安装已启用，开始静默安装...")
+                            Toast.makeText(this@MainActivity, "已启用Root自动安装，正在后台安装…", Toast.LENGTH_SHORT).show()
+                            binding.cardDownload.visibility = View.GONE
+                            viewModel.installApk()
+                        } else {
+                            AppLog.i("MainActivity", "Root自动安装未启用，显示安装对话框")
+                            showInstallDialog()
+                        }
                     }
                     DownloadState.VERIFY_FAILED -> {
                         AppLog.e("MainActivity", "下载校验失败")

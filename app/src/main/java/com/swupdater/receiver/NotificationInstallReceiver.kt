@@ -1,4 +1,4 @@
-package com.swupdater.receiver
+﻿package com.swupdater.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.preference.PreferenceManager
 import com.swupdater.service.DownloadNotificationHelper
 import com.swupdater.util.AppLog
 import com.swupdater.util.FileUtil
@@ -54,11 +55,15 @@ class NotificationInstallReceiver : BroadcastReceiver() {
         }
 
         // 检查 Root 自动安装
-        val prefs = context.getSharedPreferences("sw_updater_prefs", Context.MODE_PRIVATE)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
+        val isRooted = RootInstallHelper.isDeviceRooted()
 
-        if (rootAutoInstall && RootInstallHelper.isDeviceRooted()) {
+        AppLog.i(TAG, "Root自动安装设置: $rootAutoInstall, 设备Root状态: $isRooted")
+
+        if (rootAutoInstall && isRooted) {
             // Root 静默安装
+            AppLog.i(TAG, "开始Root静默安装")
             Thread {
                 val result = RootInstallHelper.installSilently(filePath)
                 if (result.success) {
@@ -73,6 +78,7 @@ class NotificationInstallReceiver : BroadcastReceiver() {
                 }
             }.start()
         } else {
+            AppLog.i(TAG, "使用系统安装器")
             installViaSystem(context, file)
         }
     }
