@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">魔灵召唤 · 自动更新</string>
     <string name="settings_title">设置</string>
@@ -177,4 +177,8 @@
     <!-- 魔灵召唤新版本自动下载安装相关 -->
     <string name="auto_download_notification_title">发现新版本</string>
     <string name="auto_download_notification_text">正在自动下载魔灵召唤新版本…</string>
+
+    <!-- 更新后自动启动游戏 -->
+    <string name="pref_auto_launch_game">更新后自动启动游戏</string>
+    <string name="pref_auto_launch_game_summary">魔灵召唤更新安装完成后自动启动游戏</string>
 </resources>

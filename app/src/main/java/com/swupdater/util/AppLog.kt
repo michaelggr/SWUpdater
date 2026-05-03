@@ -1,4 +1,4 @@
-g:\dev\SWUPDATER\SWUpdater\new_icon.pngpackage com.swupdater.util
+package com.swupdater.util
 
 import android.content.Context
 import android.content.SharedPreferences

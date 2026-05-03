@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
@@ -155,6 +155,21 @@ object AppInfoUtil {
      */
     fun getLaunchIntent(context: Context, packageName: String): android.content.Intent? {
         return context.packageManager.getLaunchIntentForPackage(packageName)
+    }
+
+    /**
+     * 启动魔灵召唤游戏
+     */
+    fun launchGame(context: Context) {
+        val packageName = detectInstalledPackageName(context)
+        val launchIntent = getLaunchIntent(context, packageName)
+        if (launchIntent != null) {
+            launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(launchIntent)
+            AppLog.i(TAG, "已启动魔灵召唤: $packageName")
+        } else {
+            AppLog.w(TAG, "无法获取魔灵召唤启动 Intent: $packageName")
+        }
     }
 
     /**

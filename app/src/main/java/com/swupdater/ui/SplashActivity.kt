@@ -313,7 +313,7 @@ class SplashActivity : AppCompatActivity() {
      * 显示存储权限被拒绝的提示
      */
     private fun showStorageDeniedDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.permission_storage_denied_title)
             .setMessage(R.string.permission_storage_denied_message)
             .setPositiveButton(R.string.continue_btn) { _, _ ->
@@ -330,7 +330,7 @@ class SplashActivity : AppCompatActivity() {
      * 显示悬浮窗权限被拒绝的提示
      */
     private fun showOverlayDeniedDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.permission_overlay_denied_title)
             .setMessage(R.string.permission_overlay_denied_message)
             .setPositiveButton(R.string.continue_btn) { _, _ ->
@@ -347,7 +347,7 @@ class SplashActivity : AppCompatActivity() {
      * 显示确认跳过权限请求的对话框
      */
     private fun showSkipConfirmDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.permission_skip_title)
             .setMessage(R.string.permission_skip_message)
             .setPositiveButton(R.string.confirm_skip) { _, _ ->

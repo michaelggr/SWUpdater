@@ -78,12 +78,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         private fun openDirectoryPicker() {
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-            }
-            directoryPickerLauncher.launch(intent)
+            directoryPickerLauncher.launch(null)
         }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -241,6 +236,14 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 key = "pref_wifi_only"
                 title = getString(R.string.pref_wifi_only)
                 summary = getString(R.string.pref_wifi_only_summary)
+                setDefaultValue(true)
+                updateCategory.addPreference(this)
+            }
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_auto_launch_game"
+                title = getString(R.string.pref_auto_launch_game)
+                summary = getString(R.string.pref_auto_launch_game_summary)
                 setDefaultValue(true)
                 updateCategory.addPreference(this)
             }

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.preference.PreferenceManager
 import com.swupdater.service.DownloadNotificationHelper
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.AppLog
@@ -61,6 +62,7 @@ class InstallReceiver : BroadcastReceiver() {
      * 游戏安装/更新完成
      * - 删除安装包
      * - 显示安装完成通知
+     * - 根据设置自动启动游戏
      */
     private fun onGameInstalled(context: Context) {
         // 删除已下载的安装包
@@ -71,5 +73,15 @@ class InstallReceiver : BroadcastReceiver() {
 
         // 显示安装完成通知
         DownloadNotificationHelper.showInstallCompleteNotification(context)
+
+        // 检查是否需要自动启动游戏
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val autoLaunch = prefs.getBoolean("pref_auto_launch_game", true)
+        if (autoLaunch) {
+            AppLog.i(TAG, "自动启动游戏已开启，正在启动...")
+            AppInfoUtil.launchGame(context)
+        } else {
+            AppLog.i(TAG, "自动启动游戏已关闭")
+        }
     }
 }
