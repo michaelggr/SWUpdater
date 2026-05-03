@@ -89,9 +89,17 @@ android {
                 "META-INF/INDEX.LIST",
                 "META-INF/NOTICE",
                 "META-INF/LICENSE",
+                "META-INF/*.LICENSE.txt",
+                "META-INF/*.md",
+                "META-INF/*.txt",
                 "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-                "META-INF/io.netty.versions.properties"
+                "META-INF/io.netty.versions.properties",
+                "META-INF/services/*",
+                "OSGI-INF/*"
             )
+        }
+        jniLibs {
+            excludes += listOf("**/libnetty*.so")
         }
     }
 }
@@ -130,5 +138,14 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
     implementation("org.msgpack:msgpack-core:0.9.8")
-    implementation("io.netty:netty-all:4.1.108.Final")
+    // 使用必要的 Netty 模块而非全部引入
+    implementation("io.netty:netty-buffer:4.1.108.Final")
+    implementation("io.netty:netty-codec:4.1.108.Final")
+    implementation("io.netty:netty-codec-http:4.1.108.Final")
+    implementation("io.netty:netty-codec-http2:4.1.108.Final")
+    implementation("io.netty:netty-codec-socks:4.1.108.Final")
+    implementation("io.netty:netty-common:4.1.108.Final")
+    implementation("io.netty:netty-handler:4.1.108.Final")
+    implementation("io.netty:netty-resolver:4.1.108.Final")
+    implementation("io.netty:netty-transport:4.1.108.Final")
 }
