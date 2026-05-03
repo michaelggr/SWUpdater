@@ -1,40 +1,28 @@
-﻿package com.swupdater.ui
+package com.swupdater.ui
 
-import android.app.Dialog
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.DocumentsContract
-import android.view.LayoutInflater
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.swupdater.BuildConfig
 import com.swupdater.R
+import com.swupdater.model.DownloadChannel
+import com.swupdater.model.VersionInfo
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.File
-import java.io.IOException
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.withContext
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
@@ -53,54 +41,31 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     class SettingsFragment : PreferenceFragmentCompat() {
 
-        // 应用自身更新相关变量
-        private var selfUpdateDownloadDialog: Dialog? = null
-        private var selfUpdateDownloadJob: Job? = null
-        private var selfUpdateApkFile: File? = null
-        private var shouldCancelSelfUpdate = false
-
-        private val storagePermissionLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) {
-            if (WallpaperManager.hasStoragePermission(requireContext())) {
-                openDirectoryPicker()
-            } else {
-                Toast.makeText(requireContext(), "存储权限未授予", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        private val directoryPickerLauncher = registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree()
-        ) { uri ->
-            uri?.let {
-                // 授予持久化权限
-                requireContext().contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-
-                // 获取目录路径
-                val path = DocumentsContract.getTreeDocumentId(uri)
-                val documentId = path.split(":").last()
-                val dirPath = "/storage/emulated/0/$documentId"
-
-                // 保存设置
-                WallpaperManager.setCustomDownloadDir(requireContext(), dirPath)
-
-                // 更新摘要
-                findPreference<Preference>("pref_custom_download_dir")?.summary = dirPath
-
-                Toast.makeText(requireContext(), "壁纸下载目录已设置为: $dirPath", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        private fun openDirectoryPicker() {
-            directoryPickerLauncher.launch(null)
-        }
-
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             val context = preferenceManager.context
             val screen = preferenceManager.createPreferenceScreen(context)
+
+            // === 外观设置 ===
+            val appearanceCategory = androidx.preference.PreferenceCategory(context).apply {
+                title = "外观"
+            }
+            screen.addPreference(appearanceCategory)
+
+            // 主题模式（日间/夜间/跟随系统）
+            DropDownPreference(context).apply {
+                key = "pref_theme_mode"
+                title = "主题模式"
+                entries = arrayOf("跟随系统", "日间模式", "夜间模式")
+                entryValues = arrayOf("-1", "1", "2")
+                setDefaultValue("-1")
+                summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
+                setOnPreferenceChangeListener { _, newValue ->
+                    val mode = (newValue as String).toInt()
+                    AppCompatDelegate.setDefaultNightMode(mode)
+                    true
+                }
+                appearanceCategory.addPreference(this)
+            }
 
             // === 壁纸设置 ===
             val wallpaperCategory = androidx.preference.PreferenceCategory(context).apply {
@@ -160,20 +125,25 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
 
             // 壁纸下载目录
-            androidx.preference.Preference(context).apply {
+            androidx.preference.EditTextPreference(context).apply {
                 key = "pref_custom_download_dir"
                 title = getString(R.string.pref_wallpaper_download_dir)
                 val currentDir = WallpaperManager.getCustomDownloadDir(requireContext())
                 summary = currentDir ?: "默认（公用 Download/SWUpdater/wallpapers）"
-                setOnPreferenceClickListener {
-                    // 先检查存储权限
-                    if (WallpaperManager.hasStoragePermission(requireContext())) {
-                        openDirectoryPicker()
+                setDefaultValue("")
+                setOnPreferenceChangeListener { _, newValue ->
+                    val path = newValue.toString().trim()
+                    if (path.isEmpty()) {
+                        WallpaperManager.setCustomDownloadDir(requireContext(), null)
+                        summary = "默认（公用 Download/SWUpdater/wallpapers）"
                     } else {
-                        // 请求存储权限
-                        val intent = WallpaperManager.getStoragePermissionIntent(requireContext())
-                        if (intent != null) {
-                            storagePermissionLauncher.launch(intent)
+                        val dir = java.io.File(path)
+                        if (dir.exists() && dir.isDirectory) {
+                            WallpaperManager.setCustomDownloadDir(requireContext(), path)
+                            summary = path
+                        } else {
+                            Toast.makeText(requireContext(), "目录不存在，请输入有效路径", Toast.LENGTH_SHORT).show()
+                            return@setOnPreferenceChangeListener false
                         }
                     }
                     true
@@ -223,7 +193,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 key = "pref_auto_download"
                 title = getString(R.string.pref_auto_download)
                 summary = getString(R.string.pref_auto_download_summary)
-                setDefaultValue(true) // 有权限默认开启
+                setDefaultValue(false)
                 updateCategory.addPreference(this)
             }
 
@@ -235,26 +205,18 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 updateCategory.addPreference(this)
             }
 
-            SwitchPreferenceCompat(context).apply {
-                key = "pref_auto_launch_game"
-                title = getString(R.string.pref_auto_launch_game)
-                summary = getString(R.string.pref_auto_launch_game_summary)
-                setDefaultValue(true)
-                updateCategory.addPreference(this)
-            }
-
             // === 后台保活设置 ===
             val keepAliveCategory = androidx.preference.PreferenceCategory(context).apply {
                 title = "后台保活"
             }
             screen.addPreference(keepAliveCategory)
 
-            // 保活开关 - 有权限默认开启
+            // 保活开关
             SwitchPreferenceCompat(context).apply {
                 key = "pref_keep_alive_enabled"
                 title = "启用后台保活"
                 summary = "保持应用在后台运行，确保自动检查更新不被中断"
-                setDefaultValue(true) // 有权限默认开启
+                setDefaultValue(false)
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
                     com.swupdater.service.KeepAliveService.setEnabled(requireContext(), enabled)
@@ -264,12 +226,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // 开机自启动 - 有权限默认开启
+            // 开机自启动
             SwitchPreferenceCompat(context).apply {
                 key = "pref_boot_auto_start"
                 title = "开机自启动"
                 summary = "设备重启后自动启动应用并开启保活服务"
-                setDefaultValue(true) // 有权限默认开启
+                setDefaultValue(true)
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
                     com.swupdater.service.KeepAliveService.setBootAutoStartEnabled(requireContext(), enabled)
@@ -295,7 +257,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // Root保活 - 有权限默认开启
+            // Root保活
             SwitchPreferenceCompat(context).apply {
                 key = "pref_root_keep_alive"
                 title = "Root 保活"
@@ -304,7 +266,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 } else {
                     "未检测到Root权限，此功能需要已Root的设备"
                 }
-                setDefaultValue(true) // 有权限默认开启
+                setDefaultValue(false)
                 isEnabled = com.swupdater.service.KeepAliveService.isDeviceRooted()
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
@@ -349,6 +311,109 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 title = "安全设置"
             }
             screen.addPreference(securityCategory)
+
+            val captureCategory = androidx.preference.PreferenceCategory(context).apply {
+                title = "配置抓取"
+            }
+            screen.addPreference(captureCategory)
+
+            val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_capture_auto_stop"
+                title = "抓取后自动停止"
+                summary = "捕获到游戏数据后自动停止代理服务，减少对网络的影响"
+                setDefaultValue(true)
+                isEnabled = isRooted
+                setOnPreferenceChangeListener { _, newValue ->
+                    com.swupdater.capture.CaptureService.setAutoStopEnabled(requireContext(), newValue as Boolean)
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_capture_keep_cert"
+                title = "保留 CA 证书"
+                summary = "停止抓取后保留系统 CA 证书，避免重复安装。关闭则停止时自动卸载证书"
+                setDefaultValue(false)
+                isEnabled = isRooted
+                setOnPreferenceChangeListener { _, newValue ->
+                    com.swupdater.capture.CaptureService.setKeepCertEnabled(requireContext(), newValue as Boolean)
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_cert_status"
+                title = "CA 证书状态"
+                summary = if (isRooted) {
+                    if (com.swupdater.capture.CertificateManager.isCaInstalledInSystem(requireContext())) {
+                        "CA 证书已安装到系统目录 ✓"
+                    } else {
+                        "CA 证书未安装，开始抓取时将自动安装"
+                    }
+                } else {
+                    "需要 Root 权限"
+                }
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    com.swupdater.capture.CertificateManager.initialize(requireContext())
+                    val installed = com.swupdater.capture.CertificateManager.installCaToSystem(requireContext())
+                    summary = if (installed) "CA 证书已安装到系统目录 ✓" else "CA 证书安装失败"
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_open_dir"
+                title = "打开抓取数据目录"
+                summary = "查看已导出的 JSON 配置文件"
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    val dir = java.io.File(
+                        android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS
+                        ), "SWUpdater/capture"
+                    )
+                    if (!dir.exists()) dir.mkdirs()
+                    try {
+                        val uri = android.provider.MediaStore.Files.getContentUri("external")
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, "vnd.android.document/directory")
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                    } catch (_: Exception) {
+                        android.widget.Toast.makeText(
+                            requireContext(),
+                            "目录: ${dir.absolutePath}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_clear"
+                title = "清除抓取数据"
+                summary = "删除所有已导出的 JSON 配置文件"
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    val count = com.swupdater.capture.CaptureRepository.clearAllCaptures(requireContext())
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "已清除 $count 条抓取记录",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
 
             SwitchPreferenceCompat(context).apply {
                 key = "pref_verify_integrity"
@@ -505,7 +570,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             val logText = AppLog.getLogText()
             val displayText = if (logText.isBlank()) "暂无日志，请先执行一次版本检查" else logText
 
-            MaterialAlertDialogBuilder(requireContext())
+            AlertDialog.Builder(requireContext())
                 .setTitle("检测日志")
                 .setMessage(displayText)
                 .setPositiveButton("确定", null)
@@ -518,9 +583,57 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         /**
+         * 显示下载渠道选择对话框
+         */
+        private fun showDownloadChannelDialog(latestVersion: VersionInfo) {
+            val channels = latestVersion.downloadChannels
+            if (channels.isEmpty()) {
+                Toast.makeText(requireContext(), "没有可用的下载渠道", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val channelNames = channels.map { it.name }.toTypedArray()
+            
+            AlertDialog.Builder(requireContext())
+                .setTitle("选择下载渠道")
+                .setItems(channelNames) { _, which ->
+                    val selectedChannel = channels[which]
+                    startDownload(latestVersion, selectedChannel)
+                }
+                .show()
+        }
+
+        /**
+         * 根据选择的渠道开始下载
+         */
+        private fun startDownload(versionInfo: VersionInfo, channel: DownloadChannel) {
+            when (channel.type) {
+                DownloadChannel.ChannelType.APK_DIRECT -> {
+                    // 直接下载APK
+                    com.swupdater.service.DownloadService.start(
+                        requireContext(),
+                        versionInfo.downloadUrl,
+                        versionInfo.versionName
+                    )
+                    Toast.makeText(requireContext(), "从『${channel.name}』开始下载最新版本: ${versionInfo.versionName}", Toast.LENGTH_SHORT).show()
+                }
+                DownloadChannel.ChannelType.CUSTOM -> {
+                    // 打开渠道URL（应用市场等）
+                    try {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(channel.url))
+                        requireActivity().startActivity(intent)
+                        Toast.makeText(requireContext(), "打开『${channel.name}』", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "打开渠道失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        /**
          * 检查本应用自身是否有新版本
-         * 从 GitHub Release 获取最新版本号和 APK 下载链接
-         * 发现新版本后显示下载地址选择对话框
+         * 从 GitHub Release 获取最新版本号，与当前版本对比
+         * 支持 GitHub API 镜像加速，国内可用
          */
         private fun checkSelfUpdate(currentVersion: String) {
             val pref = findPreference<Preference>("pref_version")
@@ -540,11 +653,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://gh-proxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
-                            "https://mirror.ghproxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
-                            "https://api.kgithub.com/repos/michaelggr/SWUpdater/releases/latest",
-                            "https://hub.fastgit.xyz/michaelggr/SWUpdater/releases/latest",
-                            "https://gitclone.com/api/github.com/repos/michaelggr/SWUpdater/releases/latest",
-                            "https://gh.jianmu.dev/api.github.com/repos/michaelggr/SWUpdater/releases/latest"
+                            "https://mirror.ghproxy.com/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest"
                         )
 
                         val client = okhttp3.OkHttpClient.Builder()
@@ -566,28 +675,14 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                                 val json = com.google.gson.JsonParser.parseString(body).asJsonObject
                                 val tagName = json.get("tag_name")?.asString ?: continue
-                                val versionName = tagName.removePrefix("v")
-
-                                // 提取 APK 下载链接
-                                var apkUrl = ""
-                                val assets = json.get("assets")?.asJsonArray
-                                if (assets != null) {
-                                    for (asset in assets) {
-                                        val assetObj = asset.asJsonObject
-                                        val name = assetObj.get("name")?.asString ?: ""
-                                        if (name.endsWith(".apk", ignoreCase = true)) {
-                                            apkUrl = assetObj.get("browser_download_url")?.asString ?: ""
-                                            break
-                                        }
-                                    }
-                                }
-
-                                return@withContext Triple(versionName, apkUrl, url)
+                                // 同时提取下载页 URL（优先镜像）
+                                val htmlUrl = json.get("html_url")?.asString
+                                return@withContext tagName.removePrefix("v") to htmlUrl
                             } catch (_: Exception) {
-                                continue
+                                continue // 当前镜像失败，尝试下一个
                             }
                         }
-                        null
+                        null // 所有镜像都失败
                     }
 
                     if (result == null) {
@@ -596,13 +691,14 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                         return@launch
                     }
 
-                    val (latestVersion, apkUrl, _) = result
+                    val (latestVersion, releaseUrl) = result
 
                     if (latestVersion != currentVersion) {
+                        // 有新版本
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-                        // 显示下载地址选择对话框
-                        showSelfUpdateDownloadChoiceDialog(currentVersion, latestVersion, apkUrl)
+                        showUpdateDialog(currentVersion, latestVersion, releaseUrl)
                     } else {
+                        // 已是最新
                         pref?.summary = "v$currentVersion（已是最新版本）"
                         Toast.makeText(requireContext(), "当前已是最新版本 v$currentVersion", Toast.LENGTH_SHORT).show()
                     }
@@ -615,227 +711,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         /**
-         * 显示应用自身更新的下载地址选择对话框
-         */
-        private fun showSelfUpdateDownloadChoiceDialog(currentVersion: String, latestVersion: String, apkUrl: String) {
-            // 下载链接镜像列表
-            val downloadMirrors = mutableListOf<Pair<String, String>>()
-            
-            // 如果有直链，添加到开头
-            if (apkUrl.isNotEmpty()) {
-                downloadMirrors.add("直接下载（推荐）" to apkUrl)
-                // 添加加速镜像
-                downloadMirrors.add("ghgo 加速" to "https://ghgo.xyz/$apkUrl")
-                downloadMirrors.add("gh-proxy 加速" to "https://gh-proxy.com/$apkUrl")
-                downloadMirrors.add("ghproxy 加速" to "https://mirror.ghproxy.com/$apkUrl")
-            }
-            
-            // 添加入口页面
-            downloadMirrors.add("GitHub Release 页面" to "https://github.com/michaelggr/SWUpdater/releases/latest")
-
-            val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
-
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("发现新版本 v$latestVersion")
-                .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
-                .setItems(mirrorNames) { _, which ->
-                    val url = downloadMirrors[which].second
-                    if (which == 0 && apkUrl.isNotEmpty()) {
-                        // 选择直接下载，显示下载对话框
-                        showSelfUpdateDownloadDialog(url, latestVersion)
-                    } else if (which <= 3 && apkUrl.isNotEmpty()) {
-                        // 选择加速下载
-                        showSelfUpdateDownloadDialog(url, latestVersion)
-                    } else {
-                        // 选择打开页面
-                        try {
-                            startActivity(Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse(url)
-                            ))
-                        } catch (e: Exception) {
-                            Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                .setNegativeButton("稍后", null)
-                .show()
-        }
-
-        /**
-         * 显示应用自身更新的下载对话框
-         */
-        private fun showSelfUpdateDownloadDialog(url: String, versionName: String) {
-            shouldCancelSelfUpdate = false
-
-            // 创建对话框
-            val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_self_update_download, null)
-            val dialog = Dialog(requireContext())
-            dialog.setContentView(dialogView)
-            dialog.setCancelable(false)
-
-            val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
-            val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
-            val tvProgress = dialogView.findViewById<TextView>(R.id.tv_progress)
-            val tvSizeInfo = dialogView.findViewById<TextView>(R.id.tv_size_info)
-            val btnCancel = dialogView.findViewById<Button>(R.id.btn_cancel)
-            val btnInstall = dialogView.findViewById<Button>(R.id.btn_install)
-
-            tvTitle.text = "正在下载 SWUpdater v$versionName"
-
-            // 取消按钮
-            btnCancel.setOnClickListener {
-                shouldCancelSelfUpdate = true
-                selfUpdateDownloadJob?.cancel()
-                dialog.dismiss()
-                Toast.makeText(requireContext(), "下载已取消", Toast.LENGTH_SHORT).show()
-            }
-
-            // 安装按钮初始不可用
-            btnInstall.isEnabled = false
-            btnInstall.setOnClickListener {
-                installApk()
-                dialog.dismiss()
-            }
-
-            dialog.show()
-            selfUpdateDownloadDialog = dialog
-
-            // 开始下载
-            selfUpdateDownloadJob = lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    downloadSelfUpdateApk(url, versionName, progressBar, tvProgress, tvSizeInfo, btnInstall, tvTitle)
-                } catch (e: Exception) {
-                    AppLog.e("Settings", "下载失败: ${e.message}")
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-
-        /**
-         * 下载应用自身更新的 APK
-         */
-        private suspend fun downloadSelfUpdateApk(
-            url: String,
-            versionName: String,
-            progressBar: ProgressBar,
-            tvProgress: TextView,
-            tvSizeInfo: TextView,
-            btnInstall: Button,
-            tvTitle: TextView
-        ) = withContext(Dispatchers.IO) {
-            // 准备下载文件
-            val targetFile = FileUtil.getSelfUpdateApkFile(requireContext(), versionName)
-            selfUpdateApkFile = targetFile
-
-            // 确保目录存在
-            targetFile.parentFile?.mkdirs()
-
-            val client = OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .build()
-
-            val request = Request.Builder().url(url).build()
-            val response = client.newCall(request).execute()
-
-            if (!response.isSuccessful) {
-                throw IOException("下载失败: ${response.code}")
-            }
-
-            val contentLength = response.body?.contentLength() ?: 0L
-            val inputStream = response.body?.byteStream() ?: throw IOException("无法获取响应流")
-
-            // 写入文件
-            var bytesRead: Long = 0
-            val buffer = ByteArray(8192)
-            var readCount: Int
-
-            targetFile.outputStream().use { outputStream ->
-                while (inputStream.read(buffer).also { readCount = it } != -1) {
-                    if (shouldCancelSelfUpdate) {
-                        // 删除部分下载的文件
-                        targetFile.delete()
-                        return@withContext
-                    }
-
-                    outputStream.write(buffer, 0, readCount)
-                    bytesRead += readCount
-
-                    // 更新进度
-                    if (contentLength > 0) {
-                        val progress = (bytesRead * 100 / contentLength).toInt()
-                        withContext(Dispatchers.Main) {
-                            progressBar.progress = progress
-                            tvProgress.text = "$progress%"
-                            tvSizeInfo.text = "${formatSize(bytesRead)} / ${formatSize(contentLength)}"
-                        }
-                    }
-                }
-            }
-
-            inputStream.close()
-
-            // 下载完成
-            withContext(Dispatchers.Main) {
-                progressBar.progress = 100
-                tvProgress.text = "100%"
-                tvSizeInfo.text = "${formatSize(bytesRead)} / ${formatSize(bytesRead)}"
-                btnInstall.isEnabled = true
-                tvTitle.text = "下载完成 v$versionName"
-            }
-
-            AppLog.i("Settings", "应用自身更新下载完成: ${targetFile.absolutePath}")
-        }
-
-        /**
-         * 安装 APK
-         */
-        private fun installApk() {
-            val apkFile = selfUpdateApkFile ?: return
-            if (!apkFile.exists()) {
-                Toast.makeText(requireContext(), "APK 文件不存在", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            val apkUri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                FileProvider.getUriForFile(
-                    requireContext(),
-                    "${BuildConfig.APPLICATION_ID}.fileprovider",
-                    apkFile
-                )
-            } else {
-                Uri.fromFile(apkFile)
-            }
-
-            intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
-
-            try {
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "无法安装 APK: ${e.message}", Toast.LENGTH_SHORT).show()
-                AppLog.e("Settings", "安装 APK 失败: ${e.message}")
-            }
-        }
-
-        /**
-         * 格式化文件大小
-         */
-        private fun formatSize(size: Long): String {
-            return when {
-                size < 1024 -> "$size B"
-                size < 1024 * 1024 -> "${size / 1024} KB"
-                else -> "${size / 1024 / 1024} MB"
-            }
-        }
-
-        /**
          * 显示更新对话框，提供多个下载镜像
          */
         private fun showUpdateDialog(currentVersion: String, latestVersion: String, releaseUrl: String?) {
@@ -844,15 +719,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 "GitHub（原版）" to "https://github.com/michaelggr/SWUpdater/releases/latest",
                 "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
                 "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "kgithub 加速" to "https://kgithub.com/michaelggr/SWUpdater/releases/latest",
-                "FastGit 加速" to "https://hub.fastgit.xyz/michaelggr/SWUpdater/releases",
-                "GitClone 加速" to "https://gitclone.com/github.com/michaelggr/SWUpdater/releases/latest"
+                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest"
             )
 
             val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
 
-            MaterialAlertDialogBuilder(requireContext())
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("发现新版本 v$latestVersion")
                 .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
                 .setItems(mirrorNames) { _, which ->

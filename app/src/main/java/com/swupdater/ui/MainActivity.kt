@@ -12,16 +12,19 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.swupdater.R
 import com.swupdater.databinding.ActivityMainBinding
 import com.swupdater.model.*
+import com.swupdater.capture.CaptureRepository
+import com.swupdater.capture.CaptureService
 import com.swupdater.util.AppLog
 import com.swupdater.util.FileUtil
+import com.swupdater.util.RootInstallHelper
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -75,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         setupSwipeRefresh()
         setupButtons()
         setupWallpaper()
+        setupCapture()
         setupFooterButtons()
         observeViewModel()
 
@@ -83,6 +87,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ========== 壁纸功能 ==========
+
+    private fun setupCapture() {
+        val isRooted = RootInstallHelper.isDeviceRooted()
+
+        if (!isRooted) {
+            binding.tvCaptureStatus.text = "设备未 Root，无法使用配置抓取功能"
+            binding.btnStartCapture.isEnabled = false
+        }
+
+        updateCaptureUI()
+
+        binding.btnStartCapture.setOnClickListener {
+            if (!RootInstallHelper.isDeviceRooted()) {
+                Snackbar.make(binding.root, "需要 Root 权限才能使用此功能", Snackbar.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            CaptureService.start(this)
+            binding.btnStartCapture.visibility = View.GONE
+            binding.btnStopCapture.visibility = View.VISIBLE
+            binding.tvCaptureStatus.text = "抓取服务启动中..."
+        }
+
+        binding.btnStopCapture.setOnClickListener {
+            CaptureService.stop(this)
+            updateCaptureUI()
+        }
+    }
+
+    private fun updateCaptureUI() {
+        val running = CaptureService.isRunning
+        binding.btnStartCapture.visibility = if (running) View.GONE else View.VISIBLE
+        binding.btnStopCapture.visibility = if (running) View.VISIBLE else View.GONE
+
+        if (running) {
+            binding.tvCaptureStatus.text = "抓取服务运行中，启动游戏即可抓取配置数据"
+        } else {
+            val isRooted = RootInstallHelper.isDeviceRooted()
+            binding.tvCaptureStatus.text = if (isRooted) {
+                "需要 Root 权限 · 启动后打开游戏即可抓取配置数据"
+            } else {
+                "设备未 Root，无法使用配置抓取功能"
+            }
+        }
+
+        val latest = CaptureRepository.getLatestCapture(this)
+        if (latest != null) {
+            val date = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault())
+                .format(java.util.Date(latest.timestamp))
+            binding.tvCaptureLastResult.text = "最近抓取: $date · 魔灵:${latest.unitCount} 符文:${latest.runeCount} 遗物:${latest.artifactCount}"
+            binding.tvCaptureLastResult.visibility = View.VISIBLE
+        }
+    }
 
     private fun setupWallpaper() {
         binding.btnRandomWallpaper.setOnClickListener {
@@ -205,7 +261,7 @@ class MainActivity : AppCompatActivity() {
         // 检查是否有存储权限
         if (!WallpaperManager.hasStoragePermission(this)) {
             // 提示需要权限，然后去请求
-            MaterialAlertDialogBuilder(this)
+            androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("需要存储权限")
                 .setMessage("保存壁纸到公共目录需要存储权限，请授权")
                 .setPositiveButton("去授权") { _, _ ->
@@ -254,9 +310,14 @@ class MainActivity : AppCompatActivity() {
 
             if (!opened) {
                 try {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        this@MainActivity,
+                        "${packageName}.fileprovider",
+                        dir
+                    )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("file://${dir.absolutePath}")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        setDataAndType(uri, "*/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     if (intent.resolveActivity(packageManager) != null) {
                         startActivity(intent)
@@ -493,7 +554,7 @@ class MainActivity : AppCompatActivity() {
     private fun showInstallDialog() {
         val latest = viewModel.latestVersion.value
         val progress = viewModel.downloadProgress.value
-        MaterialAlertDialogBuilder(this)
+        AlertDialog.Builder(this)
             .setTitle(R.string.dialog_install_title)
             .setMessage(getString(R.string.dialog_install_message,
                 latest?.versionName ?: "未知",
@@ -506,7 +567,7 @@ class MainActivity : AppCompatActivity() {
     private fun attemptInstall() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!packageManager.canRequestPackageInstalls()) {
-                MaterialAlertDialogBuilder(this)
+                AlertDialog.Builder(this)
                     .setTitle(R.string.dialog_permission_title)
                     .setMessage(R.string.dialog_install_permission_message)
                     .setPositiveButton(R.string.dialog_btn_go_settings) { _, _ ->
@@ -549,7 +610,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPermissionDeniedDialog() {
-        MaterialAlertDialogBuilder(this)
+        AlertDialog.Builder(this)
             .setTitle(R.string.dialog_permission_title)
             .setMessage(R.string.dialog_storage_permission_message)
             .setPositiveButton(R.string.dialog_btn_go_settings) { _, _ ->
@@ -564,5 +625,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshInstalledInfo()
+        updateCaptureUI()
     }
 }

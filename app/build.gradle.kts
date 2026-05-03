@@ -7,7 +7,7 @@ plugins {
 // CI 环境通过 -PversionName=x.x.x -PversionCode=xxx 注入
 // 本地开发使用 gradle.properties 中的默认值
 val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "2.5.0" }
-val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 7
+val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 25000
 
 android {
     namespace = "com.swupdater"
@@ -112,4 +112,10 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // 游戏配置抓取功能依赖
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78")
+    implementation("org.msgpack:msgpack-core:0.9.8")
+    implementation("io.netty:netty-all:4.1.108.Final")
 }

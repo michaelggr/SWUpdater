@@ -28,9 +28,6 @@
     <!-- 设置壁纸 -->
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
-    <!-- 悬浮窗权限 -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
     <!-- 保活相关权限 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -105,6 +102,13 @@
         <!-- 保活服务 -->
         <service
             android:name=".service.KeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- 游戏配置抓取服务 -->
+        <service
+            android:name=".capture.CaptureService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
