@@ -83,10 +83,15 @@ android {
     }
 
     // 打包配置：排除冲突文件
-    packagingOptions {
-        exclude("META-INF/INDEX.LIST")
-        exclude("META-INF/NOTICE")
-        exclude("META-INF/LICENSE")
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/NOTICE",
+                "META-INF/LICENSE",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            )
+        }
     }
 }
 
