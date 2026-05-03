@@ -64,25 +64,38 @@ object AppLog {
 
     // ---- 日志方法 ----
 
-    fun d(tag: String, message: String) = log("DEBUG", tag, message)
-    fun i(tag: String, message: String) = log("INFO", tag, message)
-    fun w(tag: String, message: String) = log("WARN", tag, message)
-    fun e(tag: String, message: String) = log("ERROR", tag, message)
+    fun d(tag: String, message: String) = log("DEBUG", tag, message, null)
+    fun d(tag: String, message: String, throwable: Throwable?) = log("DEBUG", tag, message, throwable)
+    
+    fun i(tag: String, message: String) = log("INFO", tag, message, null)
+    fun i(tag: String, message: String, throwable: Throwable?) = log("INFO", tag, message, throwable)
+    
+    fun w(tag: String, message: String) = log("WARN", tag, message, null)
+    fun w(tag: String, message: String, throwable: Throwable?) = log("WARN", tag, message, throwable)
+    
+    fun e(tag: String, message: String) = log("ERROR", tag, message, null)
+    fun e(tag: String, message: String, throwable: Throwable?) = log("ERROR", tag, message, throwable)
 
-    private fun log(level: String, tag: String, message: String) {
+    private fun log(level: String, tag: String, message: String, throwable: Throwable?) {
+        val fullMessage = if (throwable != null) {
+            "$message\n${android.util.Log.getStackTraceString(throwable)}"
+        } else {
+            message
+        }
+        
         val entry = LogEntry(
             timestamp = System.currentTimeMillis(),
             level = level,
             tag = tag,
-            message = message
+            message = fullMessage
         )
 
         // 始终输出到 Android Logcat
         when (level) {
-            "DEBUG" -> android.util.Log.d(tag, message)
-            "INFO" -> android.util.Log.i(tag, message)
-            "WARN" -> android.util.Log.w(tag, message)
-            "ERROR" -> android.util.Log.e(tag, message)
+            "DEBUG" -> if (throwable != null) android.util.Log.d(tag, message, throwable) else android.util.Log.d(tag, message)
+            "INFO" -> if (throwable != null) android.util.Log.i(tag, message, throwable) else android.util.Log.i(tag, message)
+            "WARN" -> if (throwable != null) android.util.Log.w(tag, message, throwable) else android.util.Log.w(tag, message)
+            "ERROR" -> if (throwable != null) android.util.Log.e(tag, message, throwable) else android.util.Log.e(tag, message)
         }
 
         // 缓冲区
