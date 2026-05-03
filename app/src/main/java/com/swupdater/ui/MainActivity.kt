@@ -465,13 +465,36 @@ class MainActivity : AppCompatActivity() {
         binding.btnCheckUpdate.setOnClickListener {
             if (checkNetworkPermission()) viewModel.checkUpdate()
         }
-        binding.btnDownload.setOnClickListener { viewModel.startDownload() }
+        binding.btnDownload.setOnClickListener { showDownloadChannelDialog() }
         binding.btnOpenStore.setOnClickListener { viewModel.startDownload() }
         binding.btnStopDownload.setOnClickListener { viewModel.cancelDownload() }
         binding.btnInstall.setOnClickListener { attemptInstall() }
         binding.btnOpenGame.setOnClickListener {
             if (!viewModel.launchGame()) Toast.makeText(this, "无法启动游戏", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /**
+     * 显示下载渠道选择对话框
+     */
+    private fun showDownloadChannelDialog() {
+        val latest = viewModel.latestVersion.value ?: return
+        val channels = viewModel.getDownloadChannels()
+        if (channels.isEmpty()) {
+            Toast.makeText(this, "没有可用的下载渠道", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val channelNames = channels.map { it.name }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("选择下载渠道")
+            .setItems(channelNames) { _, which ->
+                val selectedChannel = channels[which]
+                viewModel.downloadViaChannel(selectedChannel)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun observeViewModel() {
