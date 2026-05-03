@@ -81,6 +81,13 @@ android {
         abortOnError = false
         checkReleaseBuilds = false
     }
+
+    // 打包配置：排除冲突文件
+    packagingOptions {
+        exclude("META-INF/INDEX.LIST")
+        exclude("META-INF/NOTICE")
+        exclude("META-INF/LICENSE")
+    }
 }
 
 dependencies {
