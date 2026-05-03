@@ -1,49 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 日间模式颜色（浅色） -->
+<!-- 魔灵召唤风格统一暗色主题 -->
 <resources>
-    <color name="primary">#FF4A3F9F</color>
-    <color name="primary_variant">#FF382D80</color>
+    <!-- 主色：深蓝紫（魔灵召唤标志色） -->
+    <color name="primary">#FF1B1464</color>
+    <color name="primary_variant">#FF0F0D3D</color>
     <color name="on_primary">#FFFFFFFF</color>
 
-    <color name="secondary">#FF6234DD</color>
-    <color name="secondary_variant">#FF4A1FBB</color>
-    <color name="on_secondary">#FFFFFFFF</color>
+    <!-- 次色：金色（魔灵召唤UI点缀色） -->
+    <color name="secondary">#FFD4A843</color>
+    <color name="secondary_variant">#FFB8922E</color>
+    <color name="on_secondary">#FF1A1A2E</color>
 
-    <color name="accent">#FF0091EA</color>
+    <!-- 强调色：亮蓝（魔灵召唤高亮色） -->
+    <color name="accent">#FF4FC3F7</color>
 
-    <color name="background">#FFF5F3FF</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="surface_variant">#FFEDE7F6</color>
-    <color name="on_background">#FF1A1730</color>
-    <color name="on_surface">#FF1A1730</color>
+    <!-- 背景：深邃暗蓝 -->
+    <color name="background">#FF0A0E27</color>
+    <color name="surface">#FF111638</color>
+    <color name="surface_variant">#FF1A2050</color>
+    <color name="on_background">#FFE8E6F0</color>
+    <color name="on_surface">#FFE8E6F0</color>
 
-    <color name="success">#FF2E7D32</color>
-    <color name="warning">#FFF57F17</color>
-    <color name="warning_bg">#26F57F17</color>
-    <color name="error">#FFC62828</color>
-    <color name="info">#FF1565C0</color>
+    <!-- 状态色 -->
+    <color name="success">#FF4CAF50</color>
+    <color name="warning">#FFFFC107</color>
+    <color name="warning_bg">#26FFC107</color>
+    <color name="error">#FFEF5350</color>
+    <color name="info">#FF4FC3F7</color>
 
-    <color name="text_primary">#FF1A1730</color>
-    <color name="text_secondary">#FF5C5775</color>
-    <color name="text_hint">#FF9E9BB0</color>
+    <!-- 文字色 -->
+    <color name="text_primary">#FFE8E6F0</color>
+    <color name="text_secondary">#FF9E9BB0</color>
+    <color name="text_hint">#FF6B6880</color>
 
-    <color name="divider">#FFE0DDE8</color>
-    <color name="card_background">#FFFFFFFF</color>
+    <!-- 分隔线与卡片 -->
+    <color name="divider">#FF2A2F5A</color>
+    <color name="card_background">#FF151A42</color>
 
-    <color name="progress_background">#FFE0DDE8</color>
-    <color name="progress_foreground">#FF6234DD</color>
+    <!-- 进度条 -->
+    <color name="progress_background">#FF2A2F5A</color>
+    <color name="progress_foreground">#FFD4A843</color>
 
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="transparent">#00000000</color>
 
-    <!-- 日间模式壁纸遮罩（浅色半透明） -->
-    <color name="wallpaper_overlay">#B3FFFFFF</color>
+    <!-- 壁纸遮罩 -->
+    <color name="wallpaper_overlay">#CC0A0E27</color>
 
     <!-- 毛玻璃卡片底色 -->
-    <color name="glass_card_background">#C0FFFFFF</color>
+    <color name="glass_card_background">#C0151A42</color>
 
-    <!-- Tonal 按钮颜色 -->
-    <color name="secondary_container">#FFEADDFF</color>
-    <color name="on_secondary_container">#FF21005D</color>
+    <!-- Tonal 按钮 -->
+    <color name="secondary_container">#FF2A2F5A</color>
+    <color name="on_secondary_container">#FFD4A843</color>
+
+    <!-- 游戏风格边框 -->
+    <color name="border_gold">#40D4A843</color>
+    <color name="border_blue">#404FC3F7</color>
+
+    <!-- 渐变色 -->
+    <color name="gradient_start">#FF1B1464</color>
+    <color name="gradient_end">#FF0A0E27</color>
+    <color name="gold_glow">#33D4A843</color>
 </resources>

@@ -12,7 +12,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
@@ -27,18 +26,14 @@ import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
@@ -106,28 +101,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             val context = preferenceManager.context
             val screen = preferenceManager.createPreferenceScreen(context)
-
-            // === 外观设置 ===
-            val appearanceCategory = androidx.preference.PreferenceCategory(context).apply {
-                title = "外观"
-            }
-            screen.addPreference(appearanceCategory)
-
-            // 主题模式（日间/夜间/跟随系统）
-            DropDownPreference(context).apply {
-                key = "pref_theme_mode"
-                title = "主题模式"
-                entries = arrayOf("跟随系统", "日间模式", "夜间模式")
-                entryValues = arrayOf("-1", "1", "2")
-                setDefaultValue("-1")
-                summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
-                setOnPreferenceChangeListener { _, newValue ->
-                    val mode = (newValue as String).toInt()
-                    AppCompatDelegate.setDefaultNightMode(mode)
-                    true
-                }
-                appearanceCategory.addPreference(this)
-            }
 
             // === 壁纸设置 ===
             val wallpaperCategory = androidx.preference.PreferenceCategory(context).apply {

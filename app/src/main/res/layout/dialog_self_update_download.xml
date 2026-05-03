@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="?android:attr/windowBackground">
+    android:background="@color/surface">
 
     <TextView
         android:id="@+id/tv_dialog_title"
@@ -13,11 +13,12 @@
         android:text="正在下载更新"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:textColor="@color/secondary"
         android:layout_marginBottom="16dp" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
-        style="?android:attr/progressBarStyleHorizontal"
+        style="@style/Widget.SWUpdater.ProgressBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:max="100"
@@ -35,14 +36,16 @@
             android:id="@+id/tv_progress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0%" />
+            android:text="0%"
+            android:textColor="@color/secondary" />
 
         <TextView
             android:id="@+id/tv_size_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="0 MB / 0 MB" />
+            android:text="0 MB / 0 MB"
+            android:textColor="@color/text_secondary" />
 
     </LinearLayout>
 
@@ -52,15 +55,17 @@
         android:orientation="horizontal"
         android:gravity="end">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_cancel"
+            style="@style/Widget.SWUpdater.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="取消"
             android:layout_marginEnd="8dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_install"
+            style="@style/Widget.SWUpdater.Button.Primary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="安装"

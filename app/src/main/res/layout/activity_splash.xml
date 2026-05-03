@@ -14,8 +14,8 @@
         android:layout_weight="1" />
 
     <ImageView
-        android:layout_width="80dp"
-        android:layout_height="80dp"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
         android:src="@mipmap/ic_launcher" />
 
     <TextView
@@ -23,8 +23,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/app_name"
-        android:textColor="@color/text_primary"
-        android:textSize="24sp"
+        android:textColor="@color/secondary"
+        android:textSize="26sp"
         android:textStyle="bold" />
 
     <TextView
@@ -59,7 +59,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/splash_permission_list_title"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/secondary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -202,6 +202,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_request_permission"
+        style="@style/Widget.SWUpdater.Button.Primary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/splash_request_permission"
@@ -210,7 +211,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_skip"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
+        style="@style/Widget.SWUpdater.Button.Text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
