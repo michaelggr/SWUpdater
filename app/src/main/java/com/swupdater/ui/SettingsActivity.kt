@@ -17,11 +17,11 @@ import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppLog
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.FileUtil
+import com.swupdater.util.ThemeManager
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withContext
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
@@ -51,17 +51,19 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             screen.addPreference(appearanceCategory)
 
-            // 主题模式（日间/夜间/跟随系统）
+            // 主题风格（游戏风格/简洁风格/跟随系统）
             DropDownPreference(context).apply {
-                key = "pref_theme_mode"
-                title = "主题模式"
-                entries = arrayOf("跟随系统", "日间模式", "夜间模式")
-                entryValues = arrayOf("-1", "1", "2")
-                setDefaultValue("-1")
+                key = "pref_theme_style"
+                title = "主题风格"
+                entries = ThemeManager.THEME_OPTIONS
+                entryValues = ThemeManager.THEME_VALUES
+                setDefaultValue(ThemeManager.THEME_GAME)
                 summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
                 setOnPreferenceChangeListener { _, newValue ->
-                    val mode = (newValue as String).toInt()
-                    AppCompatDelegate.setDefaultNightMode(mode)
+                    val mode = newValue as String
+                    ThemeManager.setThemeMode(requireContext(), mode)
+                    AppLog.i("Settings", "主题风格已切换为: ${ThemeManager.getThemeDisplayName(mode)}")
+                    Toast.makeText(requireContext(), "主题已切换，请重启应用生效", Toast.LENGTH_SHORT).show()
                     true
                 }
                 appearanceCategory.addPreference(this)
@@ -87,8 +89,6 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 }
                 wallpaperCategory.addPreference(this)
             }
-
-
 
             // 缓存壁纸数量
             DropDownPreference(context).apply {
@@ -505,8 +505,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 )
                 entryValues = arrayOf(
                     "https://play.qpyou.cn/b?i=8387&g=8109&gc=7976",
-                    "https://example.com/backup1", // 需要实际URL
-                    "https://example.com/backup2"  // 需要实际URL
+                    "https://example.com/backup1",
+                    "https://example.com/backup2"
                 )
                 setDefaultValue(VersionCheckService.DEFAULT_SOURCE_URL)
                 setOnPreferenceChangeListener { _, newValue ->
@@ -593,7 +593,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
 
             val channelNames = channels.map { it.name }.toTypedArray()
-            
+
             AlertDialog.Builder(requireContext())
                 .setTitle("选择下载渠道")
                 .setItems(channelNames) { _, which ->

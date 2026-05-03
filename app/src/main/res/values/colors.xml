@@ -63,4 +63,37 @@
     <color name="gradient_start">#FF1B1464</color>
     <color name="gradient_end">#FF0A0E27</color>
     <color name="gold_glow">#33D4A843</color>
+
+    <!-- ==================== 简洁主题颜色 ==================== -->
+    <!-- 简洁主题主色：深灰 -->
+    <color name="simple_primary">#FF2D2D2D</color>
+    <color name="simple_primary_variant">#FF1A1A1A</color>
+
+    <!-- 简洁主题次色：蓝色 -->
+    <color name="simple_secondary">#FF4A90D9</color>
+    <color name="simple_secondary_variant">#FF3A7BC8</color>
+
+    <!-- 简洁背景色：深灰黑 -->
+    <color name="simple_background">#FF121212</color>
+    <color name="simple_surface">#FF1E1E1E</color>
+    <color name="simple_surface_variant">#FF2A2A2A</color>
+    <color name="simple_on_surface">#FFE0E0E0</color>
+
+    <!-- 简洁状态色 -->
+    <color name="simple_success">#FF4CAF50</color>
+    <color name="simple_warning">#FFFFC107</color>
+    <color name="simple_error">#FFEF5350</color>
+    <color name="simple_info">#FF4A90D9</color>
+
+    <!-- 简洁分隔线与卡片 -->
+    <color name="simple_divider">#FF333333</color>
+    <color name="simple_card_background">#FF1E1E1E</color>
+
+    <!-- 简洁进度条 -->
+    <color name="simple_progress_background">#FF333333</color>
+    <color name="simple_progress_foreground">#FF4A90D9</color>
+
+    <!-- 简洁 Tonal 按钮 -->
+    <color name="simple_secondary_container">#FF2A3A4A</color>
+    <color name="simple_on_secondary_container">#FF4A90D9</color>
 </resources>

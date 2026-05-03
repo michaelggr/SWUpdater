@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 简洁风格统一暗色主题 -->
+    <style name="Theme.SWUpdater.Simple" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/simple_primary</item>
+        <item name="colorPrimaryVariant">@color/simple_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/simple_secondary</item>
+        <item name="colorSecondaryVariant">@color/simple_secondary_variant</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:colorBackground">@color/simple_background</item>
+        <item name="colorSurface">@color/simple_surface</item>
+        <item name="colorOnSurface">@color/simple_on_surface</item>
+        <item name="android:statusBarColor">@color/simple_background</item>
+        <item name="android:navigationBarColor">@color/simple_background</item>
+        <item name="android:windowBackground">@color/simple_background</item>
+        <item name="alertDialogTheme">@style/Theme.SWUpdater.Simple.Dialog</item>
+    </style>
+
+    <!-- 简洁风格弹窗 -->
+    <style name="Theme.SWUpdater.Simple.Dialog" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="android:colorBackground">@color/simple_surface</item>
+        <item name="colorOnSurface">@color/simple_on_surface</item>
+        <item name="colorPrimary">@color/simple_secondary</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <!-- 简洁风格卡片：无边框扁平化 -->
+    <style name="Widget.SWUpdater.Simple.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/simple_surface</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="contentPadding">16dp</item>
+    </style>
+
+    <!-- 简洁风格主按钮 -->
+    <style name="Widget.SWUpdater.Simple.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/simple_secondary</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <!-- 简洁风格描边按钮 -->
+    <style name="Widget.SWUpdater.Simple.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/simple_secondary</item>
+        <item name="android:textColor">@color/simple_secondary</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
+    <!-- 简洁风格进度条 -->
+    <style name="Widget.SWUpdater.Simple.ProgressBar" parent="Widget.AppCompat.ProgressBar.Horizontal">
+        <item name="android:progressBackgroundTint">@color/simple_divider</item>
+        <item name="android:progressTint">@color/simple_secondary</item>
+        <item name="android:minHeight">8dp</item>
+        <item name="android:maxHeight">8dp</item>
+    </style>
+
+    <!-- 简洁风格 Tonal 按钮 -->
+    <style name="Widget.SWUpdater.Simple.Button.Tonal" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="backgroundTint">@color/simple_secondary_container</item>
+        <item name="android:textColor">@color/simple_on_secondary_container</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+</resources>
