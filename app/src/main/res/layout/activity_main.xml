@@ -16,7 +16,7 @@
         android:visibility="gone"
         android:contentDescription="@string/btn_random_wallpaper" />
 
-    <!-- 半透明遮罩，让壁纸透出来同时保证文字可读 -->
+    <!-- 半透明遮罩，让壁纸透出来同时保证文字可读） -->
     <View
         android:id="@+id/view_wallpaper_overlay"
         android:layout_width="match_parent"
