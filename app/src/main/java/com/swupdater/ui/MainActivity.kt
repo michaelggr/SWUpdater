@@ -254,14 +254,9 @@ class MainActivity : AppCompatActivity() {
 
             if (!opened) {
                 try {
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity,
-                        "${packageName}.fileprovider",
-                        dir
-                    )
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "*/*")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        data = Uri.parse("file://${dir.absolutePath}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     if (intent.resolveActivity(packageManager) != null) {
                         startActivity(intent)
