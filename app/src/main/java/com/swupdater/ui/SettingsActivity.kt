@@ -308,6 +308,109 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             screen.addPreference(securityCategory)
 
+            val captureCategory = androidx.preference.PreferenceCategory(context).apply {
+                title = "配置抓取"
+            }
+            screen.addPreference(captureCategory)
+
+            val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_capture_auto_stop"
+                title = "抓取后自动停止"
+                summary = "捕获到游戏数据后自动停止代理服务，减少对网络的影响"
+                setDefaultValue(true)
+                isEnabled = isRooted
+                setOnPreferenceChangeListener { _, newValue ->
+                    com.swupdater.capture.CaptureService.setAutoStopEnabled(requireContext(), newValue as Boolean)
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            SwitchPreferenceCompat(context).apply {
+                key = "pref_capture_keep_cert"
+                title = "保留 CA 证书"
+                summary = "停止抓取后保留系统 CA 证书，避免重复安装。关闭则停止时自动卸载证书"
+                setDefaultValue(false)
+                isEnabled = isRooted
+                setOnPreferenceChangeListener { _, newValue ->
+                    com.swupdater.capture.CaptureService.setKeepCertEnabled(requireContext(), newValue as Boolean)
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_cert_status"
+                title = "CA 证书状态"
+                summary = if (isRooted) {
+                    if (com.swupdater.capture.CertificateManager.isCaInstalledInSystem(requireContext())) {
+                        "CA 证书已安装到系统目录 ✓"
+                    } else {
+                        "CA 证书未安装，开始抓取时将自动安装"
+                    }
+                } else {
+                    "需要 Root 权限"
+                }
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    com.swupdater.capture.CertificateManager.initialize(requireContext())
+                    val installed = com.swupdater.capture.CertificateManager.installCaToSystem(requireContext())
+                    summary = if (installed) "CA 证书已安装到系统目录 ✓" else "CA 证书安装失败"
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_open_dir"
+                title = "打开抓取数据目录"
+                summary = "查看已导出的 JSON 配置文件"
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    val dir = java.io.File(
+                        android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS
+                        ), "SWUpdater/capture"
+                    )
+                    if (!dir.exists()) dir.mkdirs()
+                    try {
+                        val uri = android.provider.MediaStore.Files.getContentUri("external")
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, "vnd.android.document/directory")
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                    } catch (_: Exception) {
+                        android.widget.Toast.makeText(
+                            requireContext(),
+                            "目录: ${dir.absolutePath}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
+            Preference(context).apply {
+                key = "pref_capture_clear"
+                title = "清除抓取数据"
+                summary = "删除所有已导出的 JSON 配置文件"
+                isEnabled = isRooted
+                setOnPreferenceClickListener {
+                    val count = com.swupdater.capture.CaptureRepository.clearAllCaptures(requireContext())
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "已清除 $count 条抓取记录",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    true
+                }
+                captureCategory.addPreference(this)
+            }
+
             SwitchPreferenceCompat(context).apply {
                 key = "pref_verify_integrity"
                 title = getString(R.string.pref_verify_integrity)
