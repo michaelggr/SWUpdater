@@ -20,11 +20,10 @@
 
     <!-- 统一弹窗风格 -->
     <style name="Theme.SWUpdater.Dialog" parent="Theme.MaterialComponents.Dialog.Alert">
-        <item name="colorBackground">@color/surface</item>
+        <item name="android:colorBackground">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="colorPrimary">@color/secondary</item>
         <item name="colorOnPrimary">@color/on_secondary</item>
-        <item name="android:background">@color/surface</item>
         <item name="android:windowTitleStyle">@style/Widget.SWUpdater.DialogTitle</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.SWUpdater.Button.DialogPositive</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.SWUpdater.Button.DialogNegative</item>
