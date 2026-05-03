@@ -250,7 +250,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 key = "pref_auto_download"
                 title = getString(R.string.pref_auto_download)
                 summary = getString(R.string.pref_auto_download_summary)
-                setDefaultValue(false)
+                setDefaultValue(true) // 有权限默认开启
                 updateCategory.addPreference(this)
             }
 
@@ -276,12 +276,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             screen.addPreference(keepAliveCategory)
 
-            // 保活开关
+            // 保活开关 - 有权限默认开启
             SwitchPreferenceCompat(context).apply {
                 key = "pref_keep_alive_enabled"
                 title = "启用后台保活"
                 summary = "保持应用在后台运行，确保自动检查更新不被中断"
-                setDefaultValue(false)
+                setDefaultValue(true) // 有权限默认开启
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
                     com.swupdater.service.KeepAliveService.setEnabled(requireContext(), enabled)
@@ -291,12 +291,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // 开机自启动
+            // 开机自启动 - 有权限默认开启
             SwitchPreferenceCompat(context).apply {
                 key = "pref_boot_auto_start"
                 title = "开机自启动"
                 summary = "设备重启后自动启动应用并开启保活服务"
-                setDefaultValue(true)
+                setDefaultValue(true) // 有权限默认开启
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
                     com.swupdater.service.KeepAliveService.setBootAutoStartEnabled(requireContext(), enabled)
@@ -322,7 +322,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 keepAliveCategory.addPreference(this)
             }
 
-            // Root保活
+            // Root保活 - 有权限默认开启
             SwitchPreferenceCompat(context).apply {
                 key = "pref_root_keep_alive"
                 title = "Root 保活"
@@ -331,7 +331,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 } else {
                     "未检测到Root权限，此功能需要已Root的设备"
                 }
-                setDefaultValue(false)
+                setDefaultValue(true) // 有权限默认开启
                 isEnabled = com.swupdater.service.KeepAliveService.isDeviceRooted()
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean
