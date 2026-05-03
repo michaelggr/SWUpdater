@@ -1,99 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 魔灵召唤风格统一暗色主题 -->
 <resources>
-    <!-- 主色：深蓝紫（魔灵召唤标志色） -->
-    <color name="primary">#FF1B1464</color>
-    <color name="primary_variant">#FF0F0D3D</color>
-    <color name="on_primary">#FFFFFFFF</color>
-
-    <!-- 次色：金色（魔灵召唤UI点缀色） -->
-    <color name="secondary">#FFD4A843</color>
-    <color name="secondary_variant">#FFB8922E</color>
-    <color name="on_secondary">#FF1A1A2E</color>
-
-    <!-- 强调色：亮蓝（魔灵召唤高亮色） -->
-    <color name="accent">#FF4FC3F7</color>
-
-    <!-- 背景：深邃暗蓝 -->
-    <color name="background">#FF0A0E27</color>
-    <color name="surface">#FF111638</color>
-    <color name="surface_variant">#FF1A2050</color>
-    <color name="on_background">#FFE8E6F0</color>
-    <color name="on_surface">#FFE8E6F0</color>
-
-    <!-- 状态色 -->
-    <color name="success">#FF4CAF50</color>
-    <color name="warning">#FFFFC107</color>
-    <color name="warning_bg">#26FFC107</color>
-    <color name="error">#FFEF5350</color>
-    <color name="info">#FF4FC3F7</color>
-
-    <!-- 文字色 -->
-    <color name="text_primary">#FFE8E6F0</color>
-    <color name="text_secondary">#FF9E9BB0</color>
-    <color name="text_hint">#FF6B6880</color>
-
-    <!-- 分隔线与卡片 -->
-    <color name="divider">#FF2A2F5A</color>
-    <color name="card_background">#FF151A42</color>
-
-    <!-- 进度条 -->
-    <color name="progress_background">#FF2A2F5A</color>
-    <color name="progress_foreground">#FFD4A843</color>
-
+    <!-- ==================== 通用颜色 ==================== -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="transparent">#00000000</color>
 
-    <!-- 壁纸遮罩 -->
-    <color name="wallpaper_overlay">#CC0A0E27</color>
+    <!-- ==================== 主题1：魔灵风格（默认） ==================== -->
+    <color name="game_primary">#FF1B1464</color>
+    <color name="game_primary_variant">#FF0F0D3D</color>
+    <color name="game_on_primary">#FFFFFFFF</color>
+    <color name="game_secondary">#FFD4A843</color>
+    <color name="game_secondary_variant">#FFB8922E</color>
+    <color name="game_on_secondary">#FF1A1A2E</color>
+    <color name="game_accent">#FF4FC3F7</color>
+    <color name="game_background">#FF0A0E27</color>
+    <color name="game_surface">#FF111638</color>
+    <color name="game_surface_variant">#FF1A2050</color>
+    <color name="game_on_background">#FFE8E6F0</color>
+    <color name="game_on_surface">#FFE8E6F0</color>
+    <color name="game_text_primary">#FFE8E6F0</color>
+    <color name="game_text_secondary">#FF9E9BB0</color>
+    <color name="game_text_hint">#FF6B6880</color>
+    <color name="game_divider">#FF2A2F5A</color>
+    <color name="game_card_background">#FF151A42</color>
+    <color name="game_card_stroke">#40D4A843</color>
+    <color name="game_progress_bg">#FF2A2F5A</color>
+    <color name="game_progress_fg">#FFD4A843</color>
+    <color name="game_secondary_container">#FF2A2F5A</color>
+    <color name="game_on_secondary_container">#FFD4A843</color>
+    <color name="game_wallpaper_overlay">#CC0A0E27</color>
+    <color name="game_status_bar">#FF0A0E27</color>
+    <color name="game_success">#FF4CAF50</color>
+    <color name="game_warning">#FFFFC107</color>
+    <color name="game_error">#FFEF5350</color>
+    <color name="game_info">#FF4FC3F7</color>
 
-    <!-- 毛玻璃卡片底色 -->
-    <color name="glass_card_background">#C0151A42</color>
-
-    <!-- Tonal 按钮 -->
-    <color name="secondary_container">#FF2A2F5A</color>
-    <color name="on_secondary_container">#FFD4A843</color>
-
-    <!-- 游戏风格边框 -->
-    <color name="border_gold">#40D4A843</color>
-    <color name="border_blue">#404FC3F7</color>
-
-    <!-- 渐变色 -->
-    <color name="gradient_start">#FF1B1464</color>
-    <color name="gradient_end">#FF0A0E27</color>
-    <color name="gold_glow">#33D4A843</color>
-
-    <!-- ==================== 简洁主题颜色 ==================== -->
-    <!-- 简洁主题主色：深灰 -->
+    <!-- ==================== 主题2：简洁风格 ==================== -->
     <color name="simple_primary">#FF2D2D2D</color>
     <color name="simple_primary_variant">#FF1A1A1A</color>
-
-    <!-- 简洁主题次色：蓝色 -->
+    <color name="simple_on_primary">#FFFFFFFF</color>
     <color name="simple_secondary">#FF4A90D9</color>
     <color name="simple_secondary_variant">#FF3A7BC8</color>
-
-    <!-- 简洁背景色：深灰黑 -->
+    <color name="simple_on_secondary">#FFFFFFFF</color>
+    <color name="simple_accent">#FF64B5F6</color>
     <color name="simple_background">#FF121212</color>
     <color name="simple_surface">#FF1E1E1E</color>
     <color name="simple_surface_variant">#FF2A2A2A</color>
+    <color name="simple_on_background">#FFE0E0E0</color>
     <color name="simple_on_surface">#FFE0E0E0</color>
-
-    <!-- 简洁状态色 -->
+    <color name="simple_text_primary">#FFE0E0E0</color>
+    <color name="simple_text_secondary">#FFAAAAAA</color>
+    <color name="simple_text_hint">#FF757575</color>
+    <color name="simple_divider">#FF333333</color>
+    <color name="simple_card_background">#FF1E1E1E</color>
+    <color name="simple_card_stroke">#00FFFFFF</color>
+    <color name="simple_progress_bg">#FF333333</color>
+    <color name="simple_progress_fg">#FF4A90D9</color>
+    <color name="simple_secondary_container">#FF1A2A3A</color>
+    <color name="simple_on_secondary_container">#FF4A90D9</color>
+    <color name="simple_wallpaper_overlay">#CC121212</color>
+    <color name="simple_status_bar">#FF121212</color>
     <color name="simple_success">#FF4CAF50</color>
     <color name="simple_warning">#FFFFC107</color>
     <color name="simple_error">#FFEF5350</color>
     <color name="simple_info">#FF4A90D9</color>
 
-    <!-- 简洁分隔线与卡片 -->
-    <color name="simple_divider">#FF333333</color>
-    <color name="simple_card_background">#FF1E1E1E</color>
+    <!-- ==================== 主题3：暗夜风格（OLED） ==================== -->
+    <color name="night_primary">#FF000000</color>
+    <color name="night_primary_variant">#FF000000</color>
+    <color name="night_on_primary">#FFFFFFFF</color>
+    <color name="night_secondary">#FF00E676</color>
+    <color name="night_secondary_variant">#FF00C853</color>
+    <color name="night_on_secondary">#FF000000</color>
+    <color name="night_accent">#FF69F0AE</color>
+    <color name="night_background">#FF000000</color>
+    <color name="night_surface">#FF0D0D0D</color>
+    <color name="night_surface_variant">#FF1A1A1A</color>
+    <color name="night_on_background">#FFE0E0E0</color>
+    <color name="night_on_surface">#FFE0E0E0</color>
+    <color name="night_text_primary">#FFE0E0E0</color>
+    <color name="night_text_secondary">#FF999999</color>
+    <color name="night_text_hint">#FF666666</color>
+    <color name="night_divider">#FF1A1A1A</color>
+    <color name="night_card_background">#FF0D0D0D</color>
+    <color name="night_card_stroke">#1A00E676</color>
+    <color name="night_progress_bg">#FF1A1A1A</color>
+    <color name="night_progress_fg">#FF00E676</color>
+    <color name="night_secondary_container">#FF0A1A0A</color>
+    <color name="night_on_secondary_container">#FF00E676</color>
+    <color name="night_wallpaper_overlay">#DD000000</color>
+    <color name="night_status_bar">#FF000000</color>
+    <color name="night_success">#FF00E676</color>
+    <color name="night_warning">#FFFFD740</color>
+    <color name="night_error">#FFFF5252</color>
+    <color name="night_info">#FF69F0AE</color>
 
-    <!-- 简洁进度条 -->
-    <color name="simple_progress_background">#FF333333</color>
-    <color name="simple_progress_foreground">#FF4A90D9</color>
+    <!-- ==================== 主题4：樱花风格 ==================== -->
+    <color name="sakura_primary">#FF3D1A3D</color>
+    <color name="sakura_primary_variant">#FF2A0E2A</color>
+    <color name="sakura_on_primary">#FFFFFFFF</color>
+    <color name="sakura_secondary">#FFF48FB1</color>
+    <color name="sakura_secondary_variant">#FFF06292</color>
+    <color name="sakura_on_secondary">#FF2A0E2A</color>
+    <color name="sakura_accent">#FFCE93D8</color>
+    <color name="sakura_background">#FF1A0A1A</color>
+    <color name="sakura_surface">#FF241024</color>
+    <color name="sakura_surface_variant">#FF2E1630</color>
+    <color name="sakura_on_background">#FFF5E6F0</color>
+    <color name="sakura_on_surface">#FFF5E6F0</color>
+    <color name="sakura_text_primary">#FFF5E6F0</color>
+    <color name="sakura_text_secondary">#FFB89BB0</color>
+    <color name="sakura_text_hint">#FF7A5F78</color>
+    <color name="sakura_divider">#FF3A1A3A</color>
+    <color name="sakura_card_background">#FF241024</color>
+    <color name="sakura_card_stroke">#40F48FB1</color>
+    <color name="sakura_progress_bg">#FF3A1A3A</color>
+    <color name="sakura_progress_fg">#FFF48FB1</color>
+    <color name="sakura_secondary_container">#FF3A1A3A</color>
+    <color name="sakura_on_secondary_container">#FFF48FB1</color>
+    <color name="sakura_wallpaper_overlay">#CC1A0A1A</color>
+    <color name="sakura_status_bar">#FF1A0A1A</color>
+    <color name="sakura_success">#FFA5D6A7</color>
+    <color name="sakura_warning">#FFFFD54F</color>
+    <color name="sakura_error">#FFEF9A9A</color>
+    <color name="sakura_info">#FFCE93D8</color>
 
-    <!-- 简洁 Tonal 按钮 -->
-    <color name="simple_secondary_container">#FF2A3A4A</color>
-    <color name="simple_on_secondary_container">#FF4A90D9</color>
+    <!-- ==================== 兼容旧代码的别名（指向游戏风格） ==================== -->
+    <color name="primary">@color/game_primary</color>
+    <color name="primary_variant">@color/game_primary_variant</color>
+    <color name="on_primary">@color/game_on_primary</color>
+    <color name="secondary">@color/game_secondary</color>
+    <color name="secondary_variant">@color/game_secondary_variant</color>
+    <color name="on_secondary">@color/game_on_secondary</color>
+    <color name="accent">@color/game_accent</color>
+    <color name="background">@color/game_background</color>
+    <color name="surface">@color/game_surface</color>
+    <color name="surface_variant">@color/game_surface_variant</color>
+    <color name="on_background">@color/game_on_background</color>
+    <color name="on_surface">@color/game_on_surface</color>
+    <color name="text_primary">@color/game_text_primary</color>
+    <color name="text_secondary">@color/game_text_secondary</color>
+    <color name="text_hint">@color/game_text_hint</color>
+    <color name="divider">@color/game_divider</color>
+    <color name="card_background">@color/game_card_background</color>
+    <color name="progress_background">@color/game_progress_bg</color>
+    <color name="progress_foreground">@color/game_progress_fg</color>
+    <color name="secondary_container">@color/game_secondary_container</color>
+    <color name="on_secondary_container">@color/game_on_secondary_container</color>
+    <color name="wallpaper_overlay">@color/game_wallpaper_overlay</color>
+    <color name="glass_card_background">#C0151A42</color>
+    <color name="border_gold">@color/game_card_stroke</color>
+    <color name="border_blue">#404FC3F7</color>
+    <color name="gradient_start">#FF1B1464</color>
+    <color name="gradient_end">#FF0A0E27</color>
+    <color name="gold_glow">#33D4A843</color>
+    <color name="success">@color/game_success</color>
+    <color name="warning">@color/game_warning</color>
+    <color name="warning_bg">#26FFC107</color>
+    <color name="error">@color/game_error</color>
+    <color name="info">@color/game_info</color>
 </resources>

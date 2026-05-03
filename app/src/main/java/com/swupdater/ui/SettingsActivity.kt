@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.swupdater.util.ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
@@ -51,7 +52,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             screen.addPreference(appearanceCategory)
 
-            // 主题风格（游戏风格/简洁风格/跟随系统）
+            // 主题风格（魔灵/简洁/暗夜/樱花）
             DropDownPreference(context).apply {
                 key = "pref_theme_style"
                 title = "主题风格"
@@ -61,9 +62,9 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
                 setOnPreferenceChangeListener { _, newValue ->
                     val mode = newValue as String
-                    ThemeManager.setThemeMode(requireContext(), mode)
+                    ThemeManager.setThemeStyle(requireContext(), mode)
                     AppLog.i("Settings", "主题风格已切换为: ${ThemeManager.getThemeDisplayName(mode)}")
-                    Toast.makeText(requireContext(), "主题已切换，请重启应用生效", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "主题已切换，重启应用生效", Toast.LENGTH_SHORT).show()
                     true
                 }
                 appearanceCategory.addPreference(this)

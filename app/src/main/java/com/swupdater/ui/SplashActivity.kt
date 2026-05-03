@@ -82,6 +82,7 @@ class SplashActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.swupdater.util.ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
 
         // 检查是否是首次安装，或者是否需要权限引导
