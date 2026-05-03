@@ -1,6 +1,5 @@
 ﻿package com.swupdater.capture
 
-import android.util.Log
 import com.swupdater.util.AppLog
 import org.msgpack.core.MessagePack
 import org.msgpack.value.Value

@@ -1,7 +1,6 @@
 ﻿package com.swupdater.capture
 
 import android.content.Context
-import android.util.Log
 import com.swupdater.util.AppLog
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.BasicConstraints
@@ -19,10 +18,8 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileWriter
-import java.io.InputStreamReader
 import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyPairGenerator
@@ -47,7 +44,8 @@ object CertificateManager {
     private val bcProvider = BouncyCastleProvider()
 
     private var caKeyPair: KeyPair? = null
-    private var caCertificate: X509Certificate? = null
+    private var _caCertificate: X509Certificate? = null
+    val caCertificate: X509Certificate? get() = _caCertificate
     private val leafCertCache = mutableMapOf<String, Pair<KeyPair, X509Certificate>>()
 
     init {
@@ -71,7 +69,7 @@ object CertificateManager {
             val certHolder = org.bouncycastle.openssl.PEMParser(caCertFile.reader()).use { it.readObject() }
             val keyHolder = org.bouncycastle.openssl.PEMParser(caKeyFile.reader()).use { it.readObject() }
 
-            caCertificate = JcaX509CertificateConverter()
+            _caCertificate = JcaX509CertificateConverter()
                 .setProvider(bcProvider)
                 .getCertificate(certHolder as X509CertificateHolder)
 
@@ -121,7 +119,7 @@ object CertificateManager {
                 .getCertificate(certHolder)
 
             caKeyPair = keyPair
-            caCertificate = cert
+            _caCertificate = cert
 
             savePem(File(certDir, "ca-cert.pem"), cert)
             savePem(File(certDir, "ca-key.pem"), keyPair)
