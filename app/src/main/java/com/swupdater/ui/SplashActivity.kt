@@ -12,9 +12,9 @@ import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.swupdater.R
 import com.swupdater.databinding.ActivitySplashBinding
 import com.swupdater.util.AppLog
@@ -194,7 +194,7 @@ class SplashActivity : AppCompatActivity() {
             <font color="#666666">${getString(R.string.permission_root_hint)}</font>
         """.trimIndent(), HtmlCompat.FROM_HTML_MODE_COMPACT)
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.permission_title)
             .setMessage(message)
             .setPositiveButton(R.string.permission_start) { _, _ ->

@@ -12,6 +12,7 @@ import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.swupdater.BuildConfig
 import com.swupdater.R
 import com.swupdater.network.VersionCheckService
@@ -506,7 +507,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             val logText = AppLog.getLogText()
             val displayText = if (logText.isBlank()) "暂无日志，请先执行一次版本检查" else logText
 
-            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            MaterialAlertDialogBuilder(requireContext())
                 .setTitle("检测日志")
                 .setMessage(displayText)
                 .setPositiveButton("确定", null)
@@ -643,7 +644,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
 
-            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            MaterialAlertDialogBuilder(requireContext())
                 .setTitle("发现新版本 v$latestVersion")
                 .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
                 .setItems(mirrorNames) { _, which ->

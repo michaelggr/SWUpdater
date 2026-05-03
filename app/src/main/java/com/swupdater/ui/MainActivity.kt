@@ -12,10 +12,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.swupdater.R
 import com.swupdater.databinding.ActivityMainBinding
@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity() {
         // 检查是否有存储权限
         if (!WallpaperManager.hasStoragePermission(this)) {
             // 提示需要权限，然后去请求
-            androidx.appcompat.app.AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle("需要存储权限")
                 .setMessage("保存壁纸到公共目录需要存储权限，请授权")
                 .setPositiveButton("去授权") { _, _ ->
@@ -493,7 +493,7 @@ class MainActivity : AppCompatActivity() {
     private fun showInstallDialog() {
         val latest = viewModel.latestVersion.value
         val progress = viewModel.downloadProgress.value
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_install_title)
             .setMessage(getString(R.string.dialog_install_message,
                 latest?.versionName ?: "未知",
@@ -506,7 +506,7 @@ class MainActivity : AppCompatActivity() {
     private fun attemptInstall() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!packageManager.canRequestPackageInstalls()) {
-                AlertDialog.Builder(this)
+                MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.dialog_permission_title)
                     .setMessage(R.string.dialog_install_permission_message)
                     .setPositiveButton(R.string.dialog_btn_go_settings) { _, _ ->
@@ -549,7 +549,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPermissionDeniedDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_permission_title)
             .setMessage(R.string.dialog_storage_permission_message)
             .setPositiveButton(R.string.dialog_btn_go_settings) { _, _ ->
