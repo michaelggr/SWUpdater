@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.Manifest
 import android.content.ComponentName
@@ -109,6 +109,9 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartCapture.visibility = View.GONE
             binding.btnStopCapture.visibility = View.VISIBLE
             binding.tvCaptureStatus.text = "抓取服务启动中..."
+
+            // 启动游戏
+            launchGame()
         }
 
         binding.btnStopCapture.setOnClickListener {
@@ -123,11 +126,11 @@ class MainActivity : AppCompatActivity() {
         binding.btnStopCapture.visibility = if (running) View.VISIBLE else View.GONE
 
         if (running) {
-            binding.tvCaptureStatus.text = "抓取服务运行中，启动游戏即可抓取配置数据"
+            binding.tvCaptureStatus.text = "抓取服务运行中，请打开游戏"
         } else {
             val isRooted = RootInstallHelper.isDeviceRooted()
             binding.tvCaptureStatus.text = if (isRooted) {
-                "需要 Root 权限 · 启动后打开游戏即可抓取配置数据"
+                "需要 Root 权限 · 点击开始将自动启动游戏并抓取"
             } else {
                 "设备未 Root，无法使用配置抓取功能"
             }
@@ -139,6 +142,39 @@ class MainActivity : AppCompatActivity() {
                 .format(java.util.Date(latest.timestamp))
             binding.tvCaptureLastResult.text = "最近抓取: $date · 魔灵:${latest.unitCount} 符文:${latest.runeCount} 遗物:${latest.artifactCount}"
             binding.tvCaptureLastResult.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * 启动魔灵召唤游戏
+     * 优先使用包管理器启动，失败则尝试am命令
+     */
+    private fun launchGame() {
+        try {
+            val packageName = com.swupdater.util.AppInfoUtil.PACKAGE_NAME_CN
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+                SnackbarHelper.info(binding.root, "游戏已启动，抓取服务正在后台运行").show()
+                AppLog.i("MainActivity", "游戏已启动: $packageName")
+            } else {
+                // 尝试通过am命令启动
+                try {
+                    val process = Runtime.getRuntime().exec(
+                        arrayOf("su", "-c", "am start -n $packageName/com.com2us.smon.normal.freefull.google.kr.android.common.ActivityMain")
+                    )
+                    process.waitFor()
+                    SnackbarHelper.info(binding.root, "游戏已通过Root启动").show()
+                    AppLog.i("MainActivity", "游戏已通过Root启动: $packageName")
+                } catch (e: Exception) {
+                    SnackbarHelper.warning(binding.root, "无法启动游戏，请手动打开").show()
+                    AppLog.e("MainActivity", "Root启动游戏失败: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            AppLog.e("MainActivity", "启动游戏失败: ${e.message}")
+            SnackbarHelper.warning(binding.root, "启动游戏失败，请手动打开游戏").show()
         }
     }
 

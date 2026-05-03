@@ -232,39 +232,115 @@ object CertificateManager {
         val hash = getCertSubjectHashOld(context) ?: return false
         val targetPath = "$SYSTEM_CERT_DIR/${hash}.0"
 
-        val commands = listOf(
+        // 方式1：临时挂载 /system 为可写（传统方式）
+        val method1 = listOf(
             "mount -o rw,remount /system",
             "cp '${caCertFile.absolutePath}' $targetPath",
             "chmod 644 $targetPath",
             "mount -o ro,remount /system"
         )
 
-        val (success, output) = executeRootCommands(commands)
-        if (success) {
-            AppLog.i(TAG, "CA 证书安装到系统目录成功: $targetPath")
-        } else {
-            AppLog.e(TAG, "CA 证书安装失败: $output")
+        // 方式2：临时挂载根分区（Android 14+系统分区可能不在/system）
+        val method2 = listOf(
+            "mount -o rw,remount /",
+            "cp '${caCertFile.absolutePath}' $targetPath",
+            "chmod 644 $targetPath",
+            "mount -o ro,remount /"
+        )
+
+        // 方式3：使用 Magisk 模块方式（通过 bind mount 临时目录）
+        // 在 /data/local/tmp 创建临时证书目录，然后 bind mount 到系统证书目录
+        val tmpDir = "/data/local/tmp/cacerts"
+        val method3 = listOf(
+            "mkdir -p $tmpDir",
+            "cp $SYSTEM_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "cp '${caCertFile.absolutePath}' $tmpDir/${hash}.0",
+            "chmod 644 $tmpDir/${hash}.0",
+            "mount -t tmpfs tmpfs $SYSTEM_CERT_DIR",
+            "cp $tmpDir/* $SYSTEM_CERT_DIR/",
+            "chmod 644 $SYSTEM_CERT_DIR/*",
+            "chown root:root $SYSTEM_CERT_DIR/*",
+            "rm -rf $tmpDir"
+        )
+
+        // 按顺序尝试各种方式
+        val methods = listOf(
+            "方式1(remount /system)" to method1,
+            "方式2(remount /)" to method2,
+            "方式3(tmpfs bind mount)" to method3
+        )
+
+        for ((name, commands) in methods) {
+            AppLog.i(TAG, "尝试安装CA证书 - $name")
+            val (success, output) = executeRootCommands(commands)
+            if (success) {
+                // 验证证书是否真的安装成功
+                val verifyResult = executeRootCommand("ls $targetPath")
+                if (verifyResult.first) {
+                    AppLog.i(TAG, "CA 证书安装成功 ($name): $targetPath")
+                    return true
+                } else {
+                    AppLog.w(TAG, "$name 命令成功但证书未就位，尝试下一种方式")
+                }
+            } else {
+                AppLog.w(TAG, "$name 失败: $output")
+            }
         }
-        return success
+
+        AppLog.e(TAG, "所有CA证书安装方式均失败")
+        return false
     }
 
     fun uninstallCaFromSystem(context: Context): Boolean {
         val hash = getCertSubjectHashOld(context) ?: return false
         val targetPath = "$SYSTEM_CERT_DIR/${hash}.0"
 
-        val commands = listOf(
+        // 方式1：传统remount
+        val method1 = listOf(
             "mount -o rw,remount /system",
             "rm -f $targetPath",
             "mount -o ro,remount /system"
         )
 
-        val (success, output) = executeRootCommands(commands)
-        if (success) {
-            AppLog.i(TAG, "CA 证书从系统目录卸载成功")
-        } else {
-            AppLog.e(TAG, "CA 证书卸载失败: $output")
+        // 方式2：remount根分区
+        val method2 = listOf(
+            "mount -o rw,remount /",
+            "rm -f $targetPath",
+            "mount -o ro,remount /"
+        )
+
+        // 方式3：tmpfs bind mount方式卸载
+        val tmpDir = "/data/local/tmp/cacerts"
+        val method3 = listOf(
+            "mkdir -p $tmpDir",
+            "cp $SYSTEM_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "rm -f $tmpDir/${hash}.0",
+            "mount -t tmpfs tmpfs $SYSTEM_CERT_DIR",
+            "cp $tmpDir/* $SYSTEM_CERT_DIR/ 2>/dev/null || true",
+            "chmod 644 $SYSTEM_CERT_DIR/* 2>/dev/null || true",
+            "chown root:root $SYSTEM_CERT_DIR/* 2>/dev/null || true",
+            "rm -rf $tmpDir"
+        )
+
+        val methods = listOf(
+            "方式1(remount /system)" to method1,
+            "方式2(remount /)" to method2,
+            "方式3(tmpfs bind mount)" to method3
+        )
+
+        for ((name, commands) in methods) {
+            AppLog.i(TAG, "尝试卸载CA证书 - $name")
+            val (success, output) = executeRootCommands(commands)
+            if (success) {
+                AppLog.i(TAG, "CA 证书卸载成功 ($name)")
+                return true
+            } else {
+                AppLog.w(TAG, "$name 失败: $output")
+            }
         }
-        return success
+
+        AppLog.e(TAG, "所有CA证书卸载方式均失败")
+        return false
     }
 
     private fun executeRootCommand(command: String): Pair<Boolean, String> {
