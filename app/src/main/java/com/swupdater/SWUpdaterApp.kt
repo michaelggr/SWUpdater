@@ -1,15 +1,11 @@
-package com.swupdater
+﻿package com.swupdater
 
 import android.app.Application
-import android.util.Log
 import com.swupdater.receiver.BootReceiver
 import com.swupdater.service.KeepAliveService
 import com.swupdater.service.VersionCheckWorker
+import com.swupdater.util.AppLog
 
-/**
- * 应用入口
- * 初始化全局配置和后台任务
- */
 class SWUpdaterApp : Application() {
 
     companion object {
@@ -18,16 +14,20 @@ class SWUpdaterApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "魔灵召唤 · 自动更新 应用启动 v1.7.0")
 
-        // 根据设置初始化自动检查任务
+        // 初始化日志系统（读取配置、清理7天前的旧日志）
+        AppLog.init(this)
+
+        AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.6.0")
+
         initAutoCheck()
 
-        // 如果保活已启用，启动保活服务
         if (KeepAliveService.isEnabled(this)) {
             KeepAliveService.start(this)
-            Log.i(TAG, "保活服务已启动")
+            AppLog.i(TAG, "保活服务已启动")
         }
+
+        AppLog.i(TAG, "应用初始化完成")
     }
 
     private fun initAutoCheck() {
@@ -38,10 +38,10 @@ class SWUpdaterApp : Application() {
 
         if (autoCheck) {
             VersionCheckWorker.schedulePeriodicCheck(this, intervalHours)
-            Log.i(TAG, "自动检查已启用，间隔: ${intervalHours}小时")
+            AppLog.i(TAG, "自动检查已启用，间隔: ${intervalHours}h")
         } else {
             VersionCheckWorker.cancelPeriodicCheck(this)
-            Log.i(TAG, "自动检查已禁用")
+            AppLog.i(TAG, "自动检查已禁用")
         }
     }
 }

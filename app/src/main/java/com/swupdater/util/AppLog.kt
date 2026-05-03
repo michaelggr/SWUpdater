@@ -1,27 +1,38 @@
 package com.swupdater.util
 
 import android.content.Context
-import android.content.SharedPreferences
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileReader
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * 应用日志工具
- * 支持内存日志缓冲 + 文件持久化，可在设置中开关
- */
 object AppLog {
 
     private const val PREFS_NAME = "sw_updater_prefs"
     private const val PREF_LOG_MODE = "pref_log_mode"
     private const val MAX_LOG_ENTRIES = 500
     private const val LOG_FILE_NAME = "sw_updater.log"
+    private const val LOG_RETENTION_DAYS = 7
 
-    private val dateFormat = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
+    private val LOG_RETENTION_MS = LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000L
 
-    // 内存日志缓冲
+    // 包含年份的完整时间格式，方便跨年排查问题
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+
+    // 日志级别缩写映射，输出对齐更美观
+    private val levelAbbrev = mapOf(
+        "DEBUG" to "DBG",
+        "INFO"  to "INF",
+        "WARN"  to "WRN",
+        "ERROR" to "ERR"
+    )
+
+    @Volatile
+    private var logModeEnabled = false
+
     private val buffer = mutableListOf<LogEntry>()
     private val listeners = mutableListOf<(LogEntry) -> Unit>()
 
@@ -32,28 +43,35 @@ object AppLog {
         val message: String
     ) {
         val formattedTime: String get() = dateFormat.format(Date(timestamp))
-        override fun toString(): String = "${formattedTime} [$level] $tag: $message"
+        val levelShort: String get() = levelAbbrev[level] ?: level
+        override fun toString(): String = "${formattedTime} [${levelShort}] $tag: $message"
     }
 
     /**
-     * 是否启用日志模式
+     * 初始化日志系统，应在 Application.onCreate 中调用
      */
+    fun init(context: Context) {
+        logModeEnabled = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(PREF_LOG_MODE, false)
+        cleanOldEntries()
+        cleanOldLogFile(context)
+    }
+
     fun isLogModeEnabled(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean(PREF_LOG_MODE, false)
     }
 
-    /**
-     * 设置日志模式
-     */
     fun setLogModeEnabled(context: Context, enabled: Boolean) {
+        logModeEnabled = enabled
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean(PREF_LOG_MODE, enabled).apply()
+        if (!enabled) {
+            clear()
+            cleanOldLogFile(context)
+        }
     }
 
-    /**
-     * 添加日志监听器（用于 UI 实时展示）
-     */
     fun addListener(listener: (LogEntry) -> Unit) {
         listeners.add(listener)
     }
@@ -62,19 +80,27 @@ object AppLog {
         listeners.remove(listener)
     }
 
-    // ---- 日志方法 ----
-
     fun d(tag: String, message: String) = log("DEBUG", tag, message, null)
     fun d(tag: String, message: String, throwable: Throwable?) = log("DEBUG", tag, message, throwable)
-    
+
     fun i(tag: String, message: String) = log("INFO", tag, message, null)
     fun i(tag: String, message: String, throwable: Throwable?) = log("INFO", tag, message, throwable)
-    
+
     fun w(tag: String, message: String) = log("WARN", tag, message, null)
     fun w(tag: String, message: String, throwable: Throwable?) = log("WARN", tag, message, throwable)
-    
+
     fun e(tag: String, message: String) = log("ERROR", tag, message, null)
     fun e(tag: String, message: String, throwable: Throwable?) = log("ERROR", tag, message, throwable)
+
+    /**
+     * 记录一个带分隔线的段落标题，用于区分不同业务流程
+     * 例如: AppLog.section("VersionCheck", "开始版本检查") 会输出:
+     *   ──────── 开始版本检查 ────────
+     */
+    fun section(tag: String, title: String) {
+        val line = "──────── $title ────────"
+        i(tag, line)
+    }
 
     private fun log(level: String, tag: String, message: String, throwable: Throwable?) {
         val fullMessage = if (throwable != null) {
@@ -82,15 +108,7 @@ object AppLog {
         } else {
             message
         }
-        
-        val entry = LogEntry(
-            timestamp = System.currentTimeMillis(),
-            level = level,
-            tag = tag,
-            message = fullMessage
-        )
 
-        // 始终输出到 Android Logcat
         when (level) {
             "DEBUG" -> if (throwable != null) android.util.Log.d(tag, message, throwable) else android.util.Log.d(tag, message)
             "INFO" -> if (throwable != null) android.util.Log.i(tag, message, throwable) else android.util.Log.i(tag, message)
@@ -98,7 +116,15 @@ object AppLog {
             "ERROR" -> if (throwable != null) android.util.Log.e(tag, message, throwable) else android.util.Log.e(tag, message)
         }
 
-        // 缓冲区
+        if (!logModeEnabled) return
+
+        val entry = LogEntry(
+            timestamp = System.currentTimeMillis(),
+            level = level,
+            tag = tag,
+            message = fullMessage
+        )
+
         synchronized(buffer) {
             buffer.add(entry)
             if (buffer.size > MAX_LOG_ENTRIES) {
@@ -106,30 +132,96 @@ object AppLog {
             }
         }
 
-        // 通知监听器
         listeners.forEach { it(entry) }
     }
 
+    private fun cleanOldEntries() {
+        val cutoff = System.currentTimeMillis() - LOG_RETENTION_MS
+        synchronized(buffer) {
+            val iterator = buffer.iterator()
+            while (iterator.hasNext()) {
+                if (iterator.next().timestamp < cutoff) {
+                    iterator.remove()
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    private fun cleanOldLogFile(context: Context) {
+        val logFile = getLogFile(context)
+        if (!logFile.exists()) return
+
+        val cutoff = System.currentTimeMillis() - LOG_RETENTION_MS
+        val tempFile = File(logFile.parent, "${LOG_FILE_NAME}.tmp")
+
+        try {
+            val retainedLines = mutableListOf<String>()
+            BufferedReader(FileReader(logFile)).use { reader ->
+                var line: String? = reader.readLine()
+                while (line != null) {
+                    val timestamp = parseTimestampFromLine(line)
+                    if (timestamp != null && timestamp >= cutoff) {
+                        retainedLines.add(line)
+                    }
+                    line = reader.readLine()
+                }
+            }
+
+            PrintWriter(FileWriter(tempFile, false)).use { writer ->
+                retainedLines.forEach { writer.println(it) }
+            }
+
+            if (tempFile.exists()) {
+                logFile.delete()
+                tempFile.renameTo(logFile)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AppLog", "清理日志文件失败", e)
+            tempFile.delete()
+        }
+    }
+
     /**
-     * 获取所有日志
+     * 从日志行中解析时间戳
+     * 兼容两种格式: "yyyy-MM-dd HH:mm:ss.SSS" 和旧版 "MM-dd HH:mm:ss.SSS"
      */
+    private fun parseTimestampFromLine(line: String): Long? {
+        return try {
+            // 优先尝试新格式（含年份）
+            val newFormat = parseWithFormat(line, "yyyy-MM-dd HH:mm:ss.SSS", 23)
+            if (newFormat != null) return newFormat
+            // 回退到旧格式
+            parseWithFormat(line, "MM-dd HH:mm:ss.SSS", 18)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseWithFormat(line: String, pattern: String, prefixLen: Int): Long? {
+        if (line.length < prefixLen) return null
+        val dateStr = line.substring(0, prefixLen).trim()
+        val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+        val date = sdf.parse(dateStr) ?: return null
+        val cal = Calendar.getInstance()
+        val currentYear = cal.get(Calendar.YEAR)
+        cal.time = date
+        // 旧格式不含年份，补上当前年份
+        if (pattern.startsWith("MM-dd")) {
+            cal.set(Calendar.YEAR, currentYear)
+        }
+        return cal.timeInMillis
+    }
+
     fun getLogs(): List<LogEntry> = synchronized(buffer) { buffer.toList() }
 
-    /**
-     * 获取日志文本
-     */
     fun getLogText(): String = getLogs().joinToString("\n") { it.toString() }
 
-    /**
-     * 清除内存日志
-     */
     fun clear() = synchronized(buffer) { buffer.clear() }
 
-    /**
-     * 将日志写入文件
-     */
     fun flushToFile(context: Context) {
-        val logFile = File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME)
+        val logFile = getLogFile(context)
         logFile.parentFile?.mkdirs()
         try {
             PrintWriter(FileWriter(logFile, true)).use { writer ->
@@ -140,9 +232,6 @@ object AppLog {
         }
     }
 
-    /**
-     * 获取日志文件
-     */
     fun getLogFile(context: Context): File {
         return File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME)
     }

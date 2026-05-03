@@ -1,8 +1,8 @@
-package com.swupdater.network
+﻿package com.swupdater.network
 
-import android.util.Log
 import com.swupdater.model.DownloadProgress
 import com.swupdater.model.DownloadState
+import com.swupdater.util.AppLog
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,21 +14,9 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.util.concurrent.TimeUnit
 
-/**
- * 下载管理器（全局单例）
- *
- * 功能：
- * - 支持断点续传
- * - 实时进度反馈
- * - 速度计算
- * - 取消下载
- * - 使用 OkHttp（IPv4 优先 DNS + 自动重定向）
- *
- * ViewModel 和 DownloadService 共享此单例，UI 和通知栏进度同步
- */
 object DownloadManager {
 
-    private const val TAG = "DownloadManager"
+    private const val TAG = "DownloadMgr"
     private const val BUFFER_SIZE = 8192
     private const val SPEED_SAMPLE_INTERVAL = 1000L
 
@@ -42,7 +30,9 @@ object DownloadManager {
         override fun lookup(hostname: String): List<InetAddress> {
             val addresses = okhttp3.Dns.SYSTEM.lookup(hostname)
             val ipv4 = addresses.filter { it is Inet4Address }
-            return if (ipv4.isNotEmpty()) ipv4 else addresses
+            val result = if (ipv4.isNotEmpty()) ipv4 else addresses
+            AppLog.d(TAG, "DNS $hostname -> ${result.map { it.hostAddress }}")
+            return result
         }
     }
 
@@ -62,6 +52,8 @@ object DownloadManager {
         coroutineScope: CoroutineScope
     ) {
         isCancelled = false
+        AppLog.section(TAG, "启动下载任务")
+        AppLog.i(TAG, "目标文件: ${targetFile.name}")
         downloadJob = coroutineScope.launch(Dispatchers.IO) {
             downloadFile(url, targetFile)
         }
@@ -71,13 +63,9 @@ object DownloadManager {
         isCancelled = true
         downloadJob?.cancel()
         _progress.value = DownloadProgress(state = DownloadState.IDLE)
+        AppLog.w(TAG, "下载任务已取消")
     }
 
-    /**
-     * 规范化下载 URL
-     * - dn.qpyou.cn 仅支持 HTTP，必须用 HTTP
-     * - 其他域名保持原样
-     */
     private fun normalizeUrl(url: String): String {
         return if (url.contains("dn.qpyou.cn")) {
             url.replace("https://", "http://")
@@ -92,10 +80,9 @@ object DownloadManager {
 
             val actualUrl = normalizeUrl(url)
             if (actualUrl != url) {
-                Log.i(TAG, "URL 协议修正: $url → $actualUrl")
+                AppLog.i(TAG, "URL 协议修正: HTTP( dn.qpyou.cn 不支持 HTTPS)")
             }
 
-            // 断点续传：检查已有文件大小
             var downloadedBytes = 0L
             val requestBuilder = Request.Builder()
                 .url(actualUrl)
@@ -104,6 +91,7 @@ object DownloadManager {
             if (targetFile.exists() && targetFile.length() > 0) {
                 downloadedBytes = targetFile.length()
                 requestBuilder.header("Range", "bytes=$downloadedBytes-")
+                AppLog.i(TAG, "断点续传: 已有 ${downloadedBytes / 1024} KB，从断点继续")
             }
 
             val response = client.newCall(requestBuilder.build()).execute()
@@ -115,24 +103,26 @@ object DownloadManager {
                 responseCode == 200 -> {
                     totalBytes = response.body?.contentLength() ?: -1L
                     downloadedBytes = 0L
-                    // 删除旧文件再创建新的
                     if (targetFile.exists()) targetFile.delete()
+                    AppLog.i(TAG, "服务器响应 200，全新下载，总大小: ${formatSize(totalBytes)}")
                 }
                 responseCode == 206 -> {
                     val remainingBytes = response.body?.contentLength() ?: -1L
                     totalBytes = if (remainingBytes > 0) downloadedBytes + remainingBytes else -1L
+                    AppLog.i(TAG, "服务器响应 206，续传成功，剩余: ${formatSize(remainingBytes)}")
                 }
                 else -> {
                     _progress.value = DownloadProgress(
                         state = DownloadState.FAILED,
                         filePath = targetFile.absolutePath
                     )
-                    throw Exception("HTTP $responseCode, URL: $actualUrl")
+                    AppLog.e(TAG, "下载失败: HTTP $responseCode, URL: $actualUrl")
+                    return
                 }
             }
 
             val finalUrl = response.request.url.toString()
-            Log.i(TAG, "开始下载: $actualUrl → $finalUrl, 总大小: $totalBytes, 已下载: $downloadedBytes")
+            AppLog.i(TAG, "下载源: $finalUrl")
 
             val body = response.body
             if (body == null) {
@@ -140,11 +130,10 @@ object DownloadManager {
                     state = DownloadState.FAILED,
                     filePath = targetFile.absolutePath
                 )
-                Log.e(TAG, "响应 body 为空")
+                AppLog.e(TAG, "下载失败: 响应 body 为空")
                 return
             }
 
-            // 速度计算变量
             var lastSpeedBytes = downloadedBytes
             var lastSpeedTime = System.currentTimeMillis()
             var currentSpeed = 0L
@@ -156,7 +145,7 @@ object DownloadManager {
                     while (input.read(buffer).also { bytesRead = it } != -1) {
                         if (isCancelled) {
                             _progress.value = DownloadProgress(state = DownloadState.IDLE)
-                            Log.i(TAG, "下载已取消")
+                            AppLog.w(TAG, "下载已取消")
                             return
                         }
 
@@ -182,10 +171,9 @@ object DownloadManager {
             }
 
             if (!isCancelled) {
-                // 校验下载结果
                 val fileSize = targetFile.length()
                 if (fileSize == 0L) {
-                    Log.e(TAG, "下载文件大小为 0，下载失败")
+                    AppLog.e(TAG, "下载失败: 文件大小为 0")
                     _progress.value = DownloadProgress(
                         state = DownloadState.FAILED,
                         filePath = targetFile.absolutePath
@@ -201,15 +189,15 @@ object DownloadManager {
                     speed = 0,
                     filePath = targetFile.absolutePath
                 )
-                Log.i(TAG, "下载完成: ${targetFile.absolutePath}, 大小: ${fileSize / 1024 / 1024} MB")
+                AppLog.section(TAG, "下载完成")
+                AppLog.i(TAG, "文件: ${targetFile.name}, 大小: ${formatSize(fileSize)}")
             }
 
         } catch (e: CancellationException) {
             _progress.value = DownloadProgress(state = DownloadState.IDLE)
-            Log.i(TAG, "下载被取消")
+            AppLog.w(TAG, "下载被协程取消")
         } catch (e: Exception) {
-            Log.e(TAG, "下载失败: ${e.message}", e)
-            // 下载失败时删除空文件
+            AppLog.e(TAG, "下载异常: ${e.message}")
             if (targetFile.exists() && targetFile.length() == 0L) {
                 targetFile.delete()
             }
@@ -223,5 +211,11 @@ object DownloadManager {
     fun reset() {
         cancelDownload()
         _progress.value = DownloadProgress()
+    }
+
+    private fun formatSize(bytes: Long): String {
+        if (bytes <= 0) return "未知"
+        val mb = bytes / 1024.0 / 1024.0
+        return if (mb >= 1024) "${"%.2f".format(mb / 1024)} GB" else "${"%.1f".format(mb)} MB"
     }
 }

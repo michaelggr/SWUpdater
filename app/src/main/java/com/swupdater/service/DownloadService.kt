@@ -14,15 +14,6 @@ import com.swupdater.util.FileUtil
 import com.swupdater.util.RootInstallHelper
 import kotlinx.coroutines.*
 
-/**
- * 下载前台服务
- *
- * 用于后台自动下载（由 VersionCheckWorker 触发）和前台手动下载
- * - 前台运行确保下载不被系统回收
- * - 通知栏实时显示下载进度（大小、速度、百分比）
- * - 下载完成后通知可点击跳转
- * - 与 ViewModel 共享 DownloadManager 单例，UI 和通知栏进度同步
- */
 class DownloadService : Service() {
 
     companion object {
@@ -34,17 +25,13 @@ class DownloadService : Service() {
         const val EXTRA_DOWNLOAD_URL = "download_url"
         const val EXTRA_VERSION_NAME = "version_name"
 
-        /** 标记是否正在下载，防止重复启动 */
         @Volatile
         var isDownloading = false
             private set
 
-        /**
-         * 启动下载服务
-         */
         fun start(context: Context, url: String, versionName: String) {
             if (isDownloading) {
-                AppLog.i("DownloadService", "已有下载任务进行中，跳过")
+                AppLog.i(TAG, "已有下载任务进行中，跳过")
                 return
             }
             val intent = Intent(context, DownloadService::class.java).apply {
@@ -55,9 +42,6 @@ class DownloadService : Service() {
             ContextCompat.startForegroundService(context, intent)
         }
 
-        /**
-         * 检查当前是否连接了 WiFi
-         */
         @Suppress("DEPRECATION")
         fun isWifiConnected(context: Context): Boolean {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -65,6 +49,8 @@ class DownloadService : Service() {
             return networkInfo != null && networkInfo.isConnected &&
                     networkInfo.type == ConnectivityManager.TYPE_WIFI
         }
+
+        private const val TAG = "DownloadSvc"
     }
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -81,16 +67,18 @@ class DownloadService : Service() {
                 val url = intent.getStringExtra(EXTRA_DOWNLOAD_URL) ?: return START_NOT_STICKY
                 val versionName = intent.getStringExtra(EXTRA_VERSION_NAME) ?: "unknown"
 
-                // 先创建前台通知（Android 8+ 必须在 5 秒内调用）
                 val initialNotification = DownloadNotificationHelper.createInitialNotification(this)
                 startForeground(NOTIFICATION_ID, initialNotification)
 
                 isDownloading = true
+                AppLog.section(TAG, "前台下载服务启动")
+                AppLog.i(TAG, "版本: $versionName, URL: ${url.take(80)}...")
                 startDownload(url, versionName)
             }
             ACTION_CANCEL_DOWNLOAD -> {
                 DownloadManager.cancelDownload()
                 isDownloading = false
+                AppLog.w(TAG, "用户取消下载")
                 stopSelf()
             }
         }
@@ -98,17 +86,15 @@ class DownloadService : Service() {
     }
 
     private fun startDownload(url: String, versionName: String) {
-        // 先清除旧安装包
         val cleared = FileUtil.clearDownloadCache(this)
         if (cleared > 0) {
-            AppLog.i("DownloadService", "已清除 $cleared 个旧安装包")
+            AppLog.i(TAG, "已清理 $cleared 个旧安装包")
         }
 
         val targetFile = FileUtil.getApkFile(this, versionName)
-        AppLog.i("DownloadService", "开始下载 APK: $url → ${targetFile.absolutePath}")
+        AppLog.i(TAG, "下载目标: ${targetFile.name}")
         DownloadManager.startDownload(url, targetFile, serviceScope)
 
-        // 监听进度更新通知（只启动一个 collect）
         progressJob?.cancel()
         progressJob = serviceScope.launch {
             DownloadManager.progress.collect { progress ->
@@ -117,7 +103,7 @@ class DownloadService : Service() {
                 when (progress.state) {
                     DownloadState.VERIFIED -> {
                         isDownloading = false
-                        AppLog.i("DownloadService", "下载校验通过，准备处理安装")
+                        AppLog.i(TAG, "下载校验通过，准备安装")
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {
@@ -128,30 +114,28 @@ class DownloadService : Service() {
                         val prefs = getSharedPreferences("sw_updater_prefs", Context.MODE_PRIVATE)
                         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
                         val isRooted = RootInstallHelper.isDeviceRooted()
-                        AppLog.i("DownloadService", "安装配置检查: rootAutoInstall=$rootAutoInstall, isRooted=$isRooted, filePath=${progress.filePath}")
 
                         if (rootAutoInstall && isRooted && progress.filePath.isNotEmpty()) {
-                            AppLog.i("DownloadService", "Root 自动安装已开启，开始静默安装: ${progress.filePath}")
+                            AppLog.i(TAG, "Root 自动安装模式，开始静默安装")
                             DownloadNotificationHelper.updateProgress(this@DownloadService,
                                 progress.copy(state = DownloadState.INSTALLING))
 
                             serviceScope.launch(Dispatchers.IO) {
-                                AppLog.i("DownloadService", "正在执行 Root 静默安装...")
                                 val result = RootInstallHelper.installSilently(progress.filePath)
                                 if (result.success) {
-                                    AppLog.i("DownloadService", "Root 自动安装成功")
+                                    AppLog.i(TAG, "Root 自动安装成功")
                                     DownloadNotificationHelper.showInstallCompleteNotification(this@DownloadService)
                                     val apkFile = java.io.File(progress.filePath)
                                     if (apkFile.exists()) apkFile.delete()
-                                    AppLog.i("DownloadService", "安装包已删除: ${progress.filePath}")
+                                    AppLog.i(TAG, "安装包已清理: ${apkFile.name}")
                                 } else {
-                                    AppLog.e("DownloadService", "Root 自动安装失败: ${result.message}")
+                                    AppLog.e(TAG, "Root 自动安装失败: ${result.message}")
                                     DownloadNotificationHelper.showInstallFailedNotification(this@DownloadService, result.message)
                                 }
                                 stopSelf()
                             }
                         } else {
-                            AppLog.i("DownloadService", "非 Root 自动安装模式，显示通知等待用户手动安装")
+                            AppLog.i(TAG, "等待用户手动安装，显示通知")
                             DownloadNotificationHelper.updateProgress(this@DownloadService, progress)
                             stopSelf()
                         }
@@ -160,6 +144,11 @@ class DownloadService : Service() {
                     DownloadState.FAILED,
                     DownloadState.VERIFY_FAILED -> {
                         isDownloading = false
+                        if (progress.state == DownloadState.FAILED) {
+                            AppLog.e(TAG, "下载失败")
+                        } else if (progress.state == DownloadState.VERIFY_FAILED) {
+                            AppLog.e(TAG, "校验失败")
+                        }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {
@@ -179,6 +168,7 @@ class DownloadService : Service() {
         progressJob?.cancel()
         serviceScope.cancel()
         isDownloading = false
+        AppLog.i(TAG, "下载服务已销毁")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

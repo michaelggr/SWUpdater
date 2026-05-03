@@ -1,46 +1,29 @@
-package com.swupdater.service
+﻿package com.swupdater.service
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.util.Log
 import androidx.preference.PreferenceManager
 import androidx.work.*
-import com.swupdater.model.AppInstallInfo
 import com.swupdater.network.VersionCheckService
 import com.swupdater.util.AppInfoUtil
 import com.swupdater.util.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
-/**
- * 定期版本检查 Worker
- *
- * 使用 WorkManager 实现后台定期检查更新。
- * 根据用户设置：
- * - 发现新版本时发送通知
- * - 如果开启了自动下载且在 WiFi 下，自动启动下载
- */
 class VersionCheckWorker(
     context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
-        private const val TAG = "VersionCheckWorker"
+        private const val TAG = "CheckWorker"
         const val WORK_NAME = "version_check_periodic"
         const val KEY_VERSION_FOUND = "version_found"
         const val KEY_LATEST_VERSION = "latest_version"
         const val KEY_CURRENT_VERSION = "current_version"
 
-        fun getDefaultPrefs(context: Context): SharedPreferences {
-            return PreferenceManager.getDefaultSharedPreferences(context)
-        }
+        fun getDefaultPrefs(context: Context) =
+            PreferenceManager.getDefaultSharedPreferences(context)
 
-        /**
-         * 调度定期检查任务
-         * @param intervalHours 检查间隔（小时）
-         */
         fun schedulePeriodicCheck(context: Context, intervalHours: Long = 6) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -48,13 +31,13 @@ class VersionCheckWorker(
                 .build()
 
             val periodicWork = PeriodicWorkRequestBuilder<VersionCheckWorker>(
-                intervalHours, TimeUnit.HOURS
+                intervalHours, java.util.concurrent.TimeUnit.HOURS
             )
                 .setConstraints(constraints)
                 .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     WorkRequest.MIN_BACKOFF_MILLIS,
-                    TimeUnit.MILLISECONDS
+                    java.util.concurrent.TimeUnit.MILLISECONDS
                 )
                 .build()
 
@@ -64,19 +47,14 @@ class VersionCheckWorker(
                 periodicWork
             )
 
-            Log.i(TAG, "已调度定期检查任务，间隔: ${intervalHours}小时")
+            AppLog.i(TAG, "已调度定期检查任务，间隔: ${intervalHours}h")
         }
 
-        /**
-         * 取消定期检查
-         */
         fun cancelPeriodicCheck(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            AppLog.i(TAG, "已取消定期检查任务")
         }
 
-        /**
-         * 执行一次性检查
-         */
         fun scheduleOneTimeCheck(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -87,30 +65,31 @@ class VersionCheckWorker(
                 .build()
 
             WorkManager.getInstance(context).enqueue(oneTimeWork)
+            AppLog.i(TAG, "已调度一次性检查任务")
         }
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            AppLog.i(TAG, "开始执行后台版本检查...")
+            AppLog.section(TAG, "后台版本检查开始")
 
             val packageName = inputData.getString("package_name")
                 ?: AppInfoUtil.PACKAGE_NAME_CN
 
-            // 获取本地版本
             val installedInfo = AppInfoUtil.getInstalledAppInfo(applicationContext, packageName)
+            AppLog.i(TAG, "本地版本: ${if (installedInfo.isInstalled) installedInfo.versionName else "未安装"}")
 
-            // 获取远程版本 — 传入 applicationContext 以读取设置中的数据源URL
             val versionCheckService = VersionCheckService()
             val latestVersion = versionCheckService.checkLatestVersion(applicationContext)
 
             if (latestVersion == null) {
-                AppLog.w(TAG, "无法获取最新版本信息")
+                AppLog.w(TAG, "无法获取最新版本信息，检查失败")
                 return@withContext Result.failure()
             }
 
             val hasUpdate = if (!installedInfo.isInstalled) {
-                true // 未安装，视为有更新
+                AppLog.i(TAG, "游戏未安装，视为有更新")
+                true
             } else {
                 AppInfoUtil.isNewerVersion(latestVersion.versionName, installedInfo.versionName)
             }
@@ -122,21 +101,19 @@ class VersionCheckWorker(
             )
 
             if (hasUpdate) {
-                AppLog.i(TAG, "发现新版本: ${latestVersion.versionName}")
+                AppLog.i(TAG, "发现新版本: ${latestVersion.versionName} (当前: ${installedInfo.versionName ?: "未安装"})")
 
-                // 读取用户设置
                 val prefs = getDefaultPrefs(applicationContext)
                 val autoDownload = prefs.getBoolean("pref_auto_download", false)
                 val wifiOnly = prefs.getBoolean("pref_wifi_only", true)
 
-                // 判断是否可以自动下载
                 val canAutoDownload = if (autoDownload) {
                     if (wifiOnly) {
                         val isWifi = DownloadService.isWifiConnected(applicationContext)
-                        AppLog.i(TAG, "自动下载: 开启, 仅WiFi: $isWifi")
+                        AppLog.i(TAG, "自动下载: 开启, 仅WiFi: ${if (isWifi) "是" else "否"}")
                         isWifi
                     } else {
-                        AppLog.i(TAG, "自动下载: 开启, 不限网络")
+                        AppLog.i(TAG, "自动下载: 开启, 不限网络类型")
                         true
                     }
                 } else {
@@ -145,21 +122,19 @@ class VersionCheckWorker(
                 }
 
                 if (canAutoDownload && latestVersion.downloadUrl.isNotEmpty()) {
-                    // 自动下载：启动 DownloadService
-                    AppLog.i(TAG, "WiFi 下自动下载: ${latestVersion.versionName}")
+                    AppLog.i(TAG, "满足自动下载条件，启动下载: ${latestVersion.versionName}")
                     DownloadService.start(applicationContext, latestVersion.downloadUrl, latestVersion.versionName)
-                    // 下载通知由 DownloadService 管理，不再发送更新提醒通知
                 } else {
-                    // 不自动下载：发送更新提醒通知
+                    AppLog.i(TAG, "不满足自动下载条件，发送更新通知")
                     notifyUpdate(latestVersion.versionName, if (installedInfo.isInstalled) installedInfo.versionName else null)
                 }
             } else {
-                AppLog.i(TAG, "已是最新版本")
+                AppLog.i(TAG, "已是最新版本: ${installedInfo.versionName}")
             }
 
             Result.success(outputData)
         } catch (e: Exception) {
-            AppLog.e(TAG, "版本检查失败: ${e.message}")
+            AppLog.e(TAG, "后台版本检查异常: ${e.message}")
             Result.retry()
         }
     }
@@ -168,7 +143,6 @@ class VersionCheckWorker(
         val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
                 as android.app.NotificationManager
 
-        // 创建通知渠道
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val channel = android.app.NotificationChannel(
                 "update_channel",
@@ -193,5 +167,6 @@ class VersionCheckWorker(
             .build()
 
         notificationManager.notify(2001, notification)
+        AppLog.i(TAG, "已发送更新通知: v$currentVersion → v$latestVersion")
     }
 }

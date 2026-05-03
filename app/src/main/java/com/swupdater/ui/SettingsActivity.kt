@@ -434,7 +434,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             SwitchPreferenceCompat(context).apply {
                 key = "pref_log_mode"
                 title = "日志模式"
-                summary = "开启后将检测所有数据源并记录详细日志，便于排查版本检测问题"
+                summary = "开启后将记录详细日志，仅保留最近7天，便于排查问题"
                 setDefaultValue(false)
                 setOnPreferenceChangeListener { _, newValue ->
                     val enabled = newValue as Boolean

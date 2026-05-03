@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +25,7 @@ import java.io.File
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
-        private const val TAG = "MainViewModel"
+        private const val TAG = "MainVM"
     }
 
     private val versionCheckService = VersionCheckService()
@@ -34,37 +33,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var targetPackageName: String = AppInfoUtil.PACKAGE_NAME_CN
         private set
 
-    // 版本检查结果
     private val _checkResult = MutableStateFlow<UpdateCheckResult>(UpdateCheckResult.Checking)
     val checkResult: StateFlow<UpdateCheckResult> = _checkResult
 
-    // 当前已安装版本信息
     private val _installedInfo = MutableStateFlow<AppInstallInfo?>(null)
     val installedInfo: StateFlow<AppInstallInfo?> = _installedInfo
 
-    // 最新版本信息
     private val _latestVersion = MutableStateFlow<VersionInfo?>(null)
     val latestVersion: StateFlow<VersionInfo?> = _latestVersion
 
-    // 下载进度（共享 DownloadManager 单例）
     val downloadProgress: StateFlow<DownloadProgress> = DownloadManager.progress
 
-    // 是否正在检查更新
     private val _isChecking = MutableStateFlow(false)
     val isChecking: StateFlow<Boolean> = _isChecking
 
-    // 日志模式：数据源检测详情
     private val _sourceCheckResults = MutableStateFlow<List<SourceCheckResult>>(emptyList())
     val sourceCheckResults: StateFlow<List<SourceCheckResult>> = _sourceCheckResults
 
-    // 日志文本
     private val _logText = MutableStateFlow("")
     val logText: StateFlow<String> = _logText
 
     init {
         refreshInstalledInfo()
 
-        // 监听下载进度
         viewModelScope.launch {
             DownloadManager.progress.collect { progress ->
                 if (progress.state == DownloadState.DOWNLOADED && progress.filePath.isNotEmpty()) {
@@ -73,11 +64,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 监听日志
         AppLog.addListener { entry ->
             val current = _logText.value
             val newLine = entry.toString()
-            // 保持最近 200 行
             val lines = (current + "\n" + newLine).lines().takeLast(200)
             _logText.value = lines.joinToString("\n")
         }
@@ -86,7 +75,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshInstalledInfo() {
         val context = getApplication<Application>()
 
-        // 自动检测：遍历所有可能的包名
         val detectedPackage = AppInfoUtil.detectInstalledPackageName(context)
         targetPackageName = detectedPackage
 
@@ -94,14 +82,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _installedInfo.value = info
 
         if (info.isInstalled) {
-            AppLog.i(TAG, "本地应用信息: installed=true, packageName=$targetPackageName, version=${info.versionName}")
+            AppLog.i(TAG, "本地应用: $targetPackageName v${info.versionName}")
         } else {
-            // 输出所有包名的检测结果
-            AppLog.i(TAG, "本地应用信息: installed=false, 已检测以下包名均未安装:")
-            AppInfoUtil.POSSIBLE_PACKAGE_NAMES.forEach { pkg ->
-                val installed = AppInfoUtil.isAppInstalled(context, pkg)
-                AppLog.d(TAG, "  - $pkg: ${if (installed) "已安装" else "未安装"}")
-            }
+            AppLog.i(TAG, "本地应用: 未安装 (已检测 ${AppInfoUtil.POSSIBLE_PACKAGE_NAMES.size} 个包名)")
         }
     }
 
@@ -118,9 +101,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val context = getApplication<Application>()
 
-                // 如果日志模式开启，执行详细检测并记录每个步骤的结果
                 if (isLogMode) {
-                    AppLog.i(TAG, "日志模式已开启，执行详细数据源检测...")
+                    AppLog.section(TAG, "版本检查 (日志模式)")
                     val details = versionCheckService.checkAllSourcesWithDetails(context)
                     _sourceCheckResults.value = details.map {
                         SourceCheckResult(
@@ -132,7 +114,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
 
-                    // 取最终结果
                     val finalResult = details.lastOrNull()
                     if (finalResult != null && finalResult.success && finalResult.versionName != null) {
                         val latestInfo = VersionInfo(
@@ -142,12 +123,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _latestVersion.value = latestInfo
                         compareVersions(latestInfo)
                     } else {
+                        AppLog.w(TAG, "数据源检测全部失败")
                         _checkResult.value = UpdateCheckResult.Error("数据源检测失败，请检查网络连接或数据源URL配置")
                     }
                 } else {
-                    // 标准模式：使用设置中的数据源检查
+                    AppLog.section(TAG, "版本检查 (标准模式)")
                     val latestInfo = versionCheckService.checkLatestVersion(context)
                     if (latestInfo == null) {
+                        AppLog.w(TAG, "版本检查失败: 无法获取最新版本信息")
                         _checkResult.value = UpdateCheckResult.Error("无法获取最新版本信息，请检查网络连接或数据源URL配置")
                         return@launch
                     }
@@ -155,7 +138,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     compareVersions(latestInfo)
                 }
             } catch (e: Exception) {
-                AppLog.e(TAG, "检查更新失败: ${e.message}")
+                AppLog.e(TAG, "版本检查异常: ${e.message}")
                 _checkResult.value = UpdateCheckResult.Error(e.message ?: "未知错误")
             } finally {
                 _isChecking.value = false
@@ -167,7 +150,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun compareVersions(latestInfo: VersionInfo) {
         val currentVersion = _installedInfo.value?.versionName
         if (currentVersion.isNullOrEmpty()) {
-            // 游戏未安装
             _checkResult.value = UpdateCheckResult.UpdateAvailable(
                 currentVersion = "未安装",
                 latestVersion = latestInfo
@@ -178,41 +160,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 currentVersion = currentVersion,
                 latestVersion = latestInfo
             )
-            AppLog.i(TAG, "发现新版本: $currentVersion -> ${latestInfo.versionName}")
+            AppLog.i(TAG, "发现新版本: $currentVersion → ${latestInfo.versionName}")
         } else {
             _checkResult.value = UpdateCheckResult.UpToDate(currentVersion)
             AppLog.i(TAG, "已是最新版本: $currentVersion")
         }
     }
 
-    /**
-     * 获取可用下载渠道列表
-     */
     fun getDownloadChannels(): List<DownloadChannel> {
         val latest = _latestVersion.value
         return latest?.downloadChannels ?: DownloadChannels.getRecommendedChannels()
     }
 
-    /**
-     * 通过指定渠道下载
-     * 根据渠道类型执行不同操作：
-     * - OFFICIAL_WEB / APP_STORE / ACCELERATOR：浏览器打开
-     * - APK_DIRECT：下载管理器下载
-     */
     fun downloadViaChannel(channel: DownloadChannel) {
-        AppLog.i(TAG, "选择下载渠道: ${channel.name} (${channel.type})")
+        AppLog.i(TAG, "选择渠道: ${channel.name} (${channel.type})")
 
         when (channel.type) {
             DownloadChannel.ChannelType.APK_DIRECT -> {
                 val latest = _latestVersion.value ?: return
                 val targetFile = FileUtil.getApkFile(getApplication(), latest.versionName)
-                // 使用已解析的 APK 直链，而非渠道短链接
                 val downloadUrl = latest.downloadUrl.ifEmpty { channel.url }
                 AppLog.i(TAG, "APK 直链下载: $downloadUrl")
                 DownloadManager.startDownload(downloadUrl, targetFile, viewModelScope)
             }
             DownloadChannel.ChannelType.CUSTOM -> {
-                // 自定义链接可能是任意类型
                 val url = channel.url
                 if (url.endsWith(".apk", ignoreCase = true)) {
                     val latest = _latestVersion.value ?: return
@@ -230,31 +201,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * 直接下载 APK
-     * 通过 DownloadService 前台服务下载，同时更新 UI 进度和通知栏
-     */
     fun startDownload() {
         val latest = _latestVersion.value ?: return
         val downloadUrl = latest.downloadUrl
         if (downloadUrl.isEmpty()) {
-            AppLog.e(TAG, "下载链接为空，请先检查更新")
+            AppLog.e(TAG, "下载失败: 下载链接为空，请先检查更新")
             return
         }
 
-        // 如果 DownloadService 正在后台下载，不要重复启动
         if (com.swupdater.service.DownloadService.isDownloading) {
-            AppLog.i(TAG, "DownloadService 已在下载中")
+            AppLog.i(TAG, "DownloadService 已在下载中，跳过重复启动")
             return
         }
 
-        // 启动 DownloadService（处理前台通知 + 实际下载）
+        AppLog.i(TAG, "启动 DownloadService 下载: v${latest.versionName}")
         com.swupdater.service.DownloadService.start(getApplication(), downloadUrl, latest.versionName)
     }
 
-    /**
-     * 在浏览器中打开链接
-     */
     private fun openInBrowser(url: String) {
         try {
             val context = getApplication<Application>()
@@ -262,7 +225,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            AppLog.i(TAG, "已在浏览器打开: $url")
+            AppLog.i(TAG, "已打开浏览器: $url")
         } catch (e: Exception) {
             AppLog.e(TAG, "无法打开浏览器: ${e.message}")
         }
@@ -280,7 +243,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
-            AppLog.i(TAG, "开始校验下载文件: $filePath (大小: ${FileUtil.formatFileSize(file.length())})")
+            AppLog.section(TAG, "文件校验")
+            AppLog.i(TAG, "文件: ${file.name}, 大小: ${FileUtil.formatFileSize(file.length())}")
             DownloadManager._progress.value = DownloadManager.progress.value.copy(
                 state = DownloadState.VERIFYING
             )
@@ -291,24 +255,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isVerified = true
                 if (latest != null && latest.fileSize > 0) {
                     val sizeMatch = ChecksumUtil.verifyFileSize(file, latest.fileSize)
-                    AppLog.i(TAG, "文件大小校验: 期望=${latest.fileSize}, 实际=${file.length()}, 结果=$sizeMatch")
+                    AppLog.i(TAG, "大小校验: 期望=${latest.fileSize}, 实际=${file.length()}, 结果=${if (sizeMatch) "通过" else "不匹配"}")
                     if (!sizeMatch) isVerified = false
-                } else {
-                    AppLog.i(TAG, "跳过文件大小校验: latest=$latest, fileSize=${latest?.fileSize}")
                 }
                 if (isVerified && latest != null && latest.md5.isNotEmpty()) {
                     val md5Match = ChecksumUtil.verifyMd5(file, latest.md5)
-                    AppLog.i(TAG, "MD5 校验: 期望=${latest.md5}, 结果=$md5Match")
+                    AppLog.i(TAG, "MD5 校验: ${if (md5Match) "通过" else "不匹配"}")
                     if (!md5Match) isVerified = false
-                } else {
-                    AppLog.i(TAG, "跳过MD5校验: md5=${latest?.md5}")
                 }
                 if (isVerified && latest != null && latest.sha256.isNotEmpty()) {
                     val sha256Match = ChecksumUtil.verifySha256(file, latest.sha256)
-                    AppLog.i(TAG, "SHA256 校验: 期望=${latest.sha256}, 结果=$sha256Match")
+                    AppLog.i(TAG, "SHA256 校验: ${if (sha256Match) "通过" else "不匹配"}")
                     if (!sha256Match) isVerified = false
-                } else {
-                    AppLog.i(TAG, "跳过SHA256校验: sha256=${latest?.sha256}")
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "校验异常: ${e.message}")
@@ -316,7 +274,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val finalState = if (isVerified) DownloadState.VERIFIED else DownloadState.VERIFY_FAILED
-            AppLog.i(TAG, "校验结果: ${if (isVerified) "通过" else "失败"}")
+            AppLog.i(TAG, "校验结果: ${if (isVerified) "✓ 全部通过" else "✗ 校验失败"}")
             DownloadManager._progress.value = DownloadManager.progress.value.copy(
                 state = finalState
             )
@@ -326,28 +284,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun installApk(): Boolean {
         val progress = DownloadManager.progress.value
         val filePath = progress.filePath
-        AppLog.i(TAG, "installApk 被调用: filePath=$filePath, state=${progress.state}")
 
         if (filePath.isEmpty()) {
-            AppLog.e(TAG, "installApk 失败: 文件路径为空")
+            AppLog.e(TAG, "安装失败: 文件路径为空")
             return false
         }
 
         val file = File(filePath)
         if (!file.exists()) {
-            AppLog.e(TAG, "installApk 失败: 文件不存在 $filePath")
+            AppLog.e(TAG, "安装失败: 文件不存在 $filePath")
             return false
         }
 
         val context = getApplication<Application>()
-
         val prefs = context.getSharedPreferences("sw_updater_prefs", android.content.Context.MODE_PRIVATE)
         val rootAutoInstall = prefs.getBoolean("pref_root_auto_install", false)
         val isRooted = com.swupdater.util.RootInstallHelper.isDeviceRooted()
-        AppLog.i(TAG, "安装配置: rootAutoInstall=$rootAutoInstall, isRooted=$isRooted")
 
         if (rootAutoInstall && isRooted) {
-            AppLog.i(TAG, "使用 Root 静默安装: $filePath")
+            AppLog.section(TAG, "Root 静默安装")
             DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
             viewModelScope.launch {
                 val result = com.swupdater.util.RootInstallHelper.installSilently(filePath)
@@ -356,8 +311,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     refreshInstalledInfo()
                     val apkFile = File(filePath)
                     if (apkFile.exists()) apkFile.delete()
-                    AppLog.i(TAG, "安装包已删除")
-                    com.swupdater.service.DownloadNotificationHelper.showInstallCompleteNotification(context)
+                    AppLog.i(TAG, "安装包已清理")
+                    DownloadNotificationHelper.showInstallCompleteNotification(context)
                 } else {
                     AppLog.e(TAG, "Root 安装失败: ${result.message}，回退到系统安装器")
                     installViaSystemInstaller(context, file)
@@ -366,26 +321,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return true
         }
 
-        AppLog.i(TAG, "使用系统安装器安装: $filePath")
+        AppLog.i(TAG, "使用系统安装器")
         return installViaSystemInstaller(context, file)
     }
 
-    /**
-     * 通过系统安装器安装 APK
-     */
     private fun installViaSystemInstaller(context: android.content.Context, file: File): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val canInstall = context.packageManager.canRequestPackageInstalls()
-            AppLog.i(TAG, "系统安装器: Android ${Build.VERSION.SDK_INT}, canRequestPackageInstalls=$canInstall")
             if (!canInstall) {
-                AppLog.e(TAG, "系统安装器: 缺少安装未知应用权限")
+                AppLog.e(TAG, "缺少安装未知应用权限 (Android ${Build.VERSION.SDK_INT})")
                 return false
             }
         }
 
         return try {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            AppLog.i(TAG, "系统安装器: URI=$uri, file=${file.absolutePath}")
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -394,7 +344,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             context.startActivity(intent)
             val progress = DownloadManager.progress.value
             DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
-            AppLog.i(TAG, "系统安装器: Intent 已发送")
+            AppLog.i(TAG, "系统安装器已启动")
             true
         } catch (e: Exception) {
             AppLog.e(TAG, "系统安装器启动失败: ${e.message}")

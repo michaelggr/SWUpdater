@@ -28,6 +28,7 @@ import com.swupdater.util.FileUtil
 import com.swupdater.util.RootInstallHelper
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -101,17 +102,20 @@ class MainActivity : AppCompatActivity() {
         updateCaptureUI()
 
         binding.btnStartCapture.setOnClickListener {
-            if (!RootInstallHelper.isDeviceRooted()) {
-                SnackbarHelper.warning(binding.root, "需要 Root 权限才能使用此功能").show()
+            // 先做环境检测，有问题就不启动
+            val checkResult = checkCaptureEnvironment()
+            if (!checkResult.canStart) {
+                SnackbarHelper.error(binding.root, checkResult.message).show()
                 return@setOnClickListener
             }
-            CaptureService.start(this)
-            binding.btnStartCapture.visibility = View.GONE
-            binding.btnStopCapture.visibility = View.VISIBLE
-            binding.tvCaptureStatus.text = "抓取服务启动中..."
 
-            // 启动游戏
-            launchGame()
+            // 有警告但可以继续
+            if (checkResult.hasWarning) {
+                SnackbarHelper.warning(binding.root, checkResult.message).show()
+            }
+
+            // 开始抓取，显示步骤引导
+            startCaptureWithGuide()
         }
 
         binding.btnStopCapture.setOnClickListener {
@@ -119,6 +123,127 @@ class MainActivity : AppCompatActivity() {
             updateCaptureUI()
         }
     }
+
+    /**
+     * 抓取前环境检测
+     * 检测Root权限、CA证书、系统代理、VPN等可能影响抓取的因素
+     */
+    private fun checkCaptureEnvironment(): CaptureCheckResult {
+        // 1. Root权限检测
+        if (!RootInstallHelper.isDeviceRooted()) {
+            return CaptureCheckResult(
+                canStart = false,
+                hasWarning = false,
+                message = "❌ 设备未Root，无法使用抓取功能"
+            )
+        }
+
+        // 2. 系统代理检测
+        val proxyHost = android.net.Proxy.getHost(this)
+        val proxyPort = android.net.Proxy.getPort(this)
+        if (!proxyHost.isNullOrEmpty() && proxyPort > 0) {
+            return CaptureCheckResult(
+                canStart = false,
+                hasWarning = false,
+                message = "❌ 检测到系统代理($proxyHost:$proxyPort)，请先关闭系统代理再抓取"
+            )
+        }
+
+        // 3. VPN检测
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val activeNetwork = connectivityManager?.activeNetwork
+            val networkCapabilities = connectivityManager?.getNetworkCapabilities(activeNetwork)
+            if (networkCapabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true) {
+                return CaptureCheckResult(
+                    canStart = false,
+                    hasWarning = false,
+                    message = "❌ 检测到VPN连接中，请先关闭VPN再抓取，否则流量无法被拦截"
+                )
+            }
+        }
+
+        // 4. CA证书状态检测（警告级别，不阻止启动）
+        val certInstalled = com.swupdater.capture.CertificateManager.isCaInstalledInSystem(this)
+        val certWarning = if (!certInstalled) {
+            "⚠️ CA证书未安装，将在启动时自动安装"
+        } else null
+
+        // 5. 游戏是否已安装
+        val gameInstalled = try {
+            packageManager.getLaunchIntentForPackage(com.swupdater.util.AppInfoUtil.PACKAGE_NAME_CN) != null
+        } catch (e: Exception) {
+            false
+        }
+        if (!gameInstalled) {
+            return CaptureCheckResult(
+                canStart = false,
+                hasWarning = false,
+                message = "❌ 未检测到魔灵召唤，请先安装游戏"
+            )
+        }
+
+        return CaptureCheckResult(
+            canStart = true,
+            hasWarning = certWarning != null,
+            message = certWarning ?: "环境检测通过"
+        )
+    }
+
+    /**
+     * 带步骤引导的抓取启动
+     */
+    private fun startCaptureWithGuide() {
+        binding.btnStartCapture.visibility = View.GONE
+        binding.btnStopCapture.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            // 步骤1：初始化证书
+            binding.tvCaptureStatus.text = "步骤 1/4 · 初始化证书..."
+            SnackbarHelper.info(binding.root, "📋 步骤1：初始化CA证书").show()
+            delay(500)
+
+            // 步骤2：安装证书
+            binding.tvCaptureStatus.text = "步骤 2/4 · 安装CA证书..."
+            SnackbarHelper.info(binding.root, "📋 步骤2：安装CA证书到系统").show()
+
+            // 启动抓取服务
+            CaptureService.start(this@MainActivity)
+
+            // 等待服务启动
+            delay(2000)
+
+            if (!CaptureService.isRunning) {
+                binding.tvCaptureStatus.text = "抓取服务启动失败"
+                SnackbarHelper.error(binding.root, "抓取服务启动失败，请查看日志").show()
+                updateCaptureUI()
+                return@launch
+            }
+
+            // 步骤3：设置流量重定向
+            binding.tvCaptureStatus.text = "步骤 3/4 · 设置流量重定向..."
+            SnackbarHelper.info(binding.root, "📋 步骤3：设置iptables流量重定向").show()
+            delay(500)
+
+            // 步骤4：启动游戏
+            binding.tvCaptureStatus.text = "步骤 4/4 · 启动游戏..."
+            SnackbarHelper.info(binding.root, "📋 步骤4：启动魔灵召唤").show()
+            delay(300)
+
+            launchGame()
+
+            // 等待游戏启动
+            delay(1500)
+            binding.tvCaptureStatus.text = "抓取中... 请在游戏中完成操作"
+            SnackbarHelper.success(binding.root, "✅ 抓取服务已就绪，请在游戏中操作").show()
+        }
+    }
+
+    data class CaptureCheckResult(
+        val canStart: Boolean,
+        val hasWarning: Boolean,
+        val message: String
+    )
 
     private fun updateCaptureUI() {
         val running = CaptureService.isRunning
