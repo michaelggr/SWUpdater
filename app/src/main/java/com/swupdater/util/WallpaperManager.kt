@@ -1,15 +1,19 @@
 package com.swupdater.util
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import android.os.Environment
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
@@ -232,7 +236,7 @@ object WallpaperManager {
 
     /**
      * 获取壁纸下载保存目录（用户可自定义）
-     * 默认路径: /Android/data/<package>/files/Downloads/SWUpdater/wallpapers
+     * 默认路径: /sdcard/Download/SWUpdater/wallpapers (公共目录)
      */
     fun getWallpaperDownloadDir(context: Context): File {
         val customPath = getPrefs(context).getString(PREF_CUSTOM_DOWNLOAD_DIR, null)
@@ -241,11 +245,42 @@ object WallpaperManager {
             if (!dir.exists()) dir.mkdirs()
             return dir
         }
-        val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-            ?: File(context.filesDir, "Downloads")
-        val dir = File(baseDir, "SWUpdater/wallpapers")
+        val dir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "SWUpdater/wallpapers"
+        )
         if (!dir.exists()) dir.mkdirs()
         return dir
+    }
+
+    // ========== 权限检查 ==========
+
+    /**
+     * 检查是否有存储权限（MANAGE_EXTERNAL_STORAGE）
+     */
+    fun hasStoragePermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            true // Android 11 以下不需要特殊权限
+        }
+    }
+
+    /**
+     * 获取存储权限请求Intent
+     */
+    fun getStoragePermissionIntent(context: Context): Intent? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                return intent
+            } catch (e: Exception) {
+                Log.w(TAG, "无法打开 MANAGE_APP_ALL_FILES_ACCESS_PERMISSION，尝试通用设置")
+            }
+        }
+        return null
     }
 
     /**
@@ -296,28 +331,10 @@ object WallpaperManager {
     // ========== 壁纸源 ==========
 
     /**
-     * 获取当前壁纸源ID
+     * 获取壁纸URL列表（固定使用LibrarySource，共十几张图片）
      */
-    fun getWallpaperSource(context: Context): String {
-        return getPrefs(context).getString(PREF_WALLPAPER_SOURCE, LibrarySource.ID) ?: LibrarySource.ID
-    }
-
-    /**
-     * 设置壁纸源
-     */
-    fun setWallpaperSource(context: Context, sourceId: String) {
-        getPrefs(context).edit().putString(PREF_WALLPAPER_SOURCE, sourceId).apply()
-    }
-
-    /**
-     * 根据源ID获取壁纸URL列表
-     */
-    fun getUrlsForSource(sourceId: String): List<String> {
-        return when (sourceId) {
-            LibrarySource.ID -> LibrarySource.ALL_URLS
-            SwcArtSource.ID -> SwcArtSource.ALL_URLS
-            else -> OfficialSource.ALL_URLS
-        }
+    fun getUrlsForSource(@Suppress("UNUSED_PARAMETER") sourceId: String = ""): List<String> {
+        return LibrarySource.FULL_URLS // 固定使用LibrarySource的15张高清图片
     }
 
     // ========== 自动更换 ==========
@@ -399,12 +416,11 @@ object WallpaperManager {
      * 返回本次新下载的数量
      */
     suspend fun preloadWallpapers(context: Context): Int = withContext(Dispatchers.IO) {
-        val sourceId = getWallpaperSource(context)
         val maxCount = getCacheCountPref(context)
         val cached = getCachedWallpapers(context)
         val existingNames = cached.map { it.name }.toSet()
 
-        val urls = getUrlsForSource(sourceId).shuffled() // 随机顺序，确保多样性
+        val urls = getUrlsForSource().shuffled() // 随机顺序，确保多样性
         var downloaded = 0
 
         for (url in urls) {

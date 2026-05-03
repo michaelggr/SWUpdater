@@ -84,22 +84,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 wallpaperCategory.addPreference(this)
             }
 
-            // 壁纸源选择
-            DropDownPreference(context).apply {
-                key = "pref_wallpaper_source"
-                title = getString(R.string.pref_wallpaper_source)
-                val sourceNames = WallpaperManager.SOURCES.map { it.second }.toTypedArray()
-                val sourceIds = WallpaperManager.SOURCES.map { it.first }.toTypedArray()
-                entries = sourceNames
-                entryValues = sourceIds
-                setDefaultValue(WallpaperManager.SOURCES.first().first)
-                summaryProvider = androidx.preference.ListPreference.SimpleSummaryProvider.getInstance()
-                setOnPreferenceChangeListener { _, newValue ->
-                    WallpaperManager.setWallpaperSource(requireContext(), newValue.toString())
-                    true
-                }
-                wallpaperCategory.addPreference(this)
-            }
+
 
             // 缓存壁纸数量
             DropDownPreference(context).apply {
@@ -464,7 +449,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "v${BuildConfig.VERSION_NAME}"
                 isSelectable = true
                 setOnPreferenceClickListener {
-                    // 检查 SWUpdater 应用自身的更新
+                    // 检查应用自身的新版本
                     checkSelfUpdate(BuildConfig.VERSION_NAME)
                     true
                 }
@@ -502,6 +487,13 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val result = withContext(Dispatchers.IO) {
+                        // 检查版本前先清理旧安装包
+                        val clearedCount = FileUtil.clearSelfUpdateCache(requireContext())
+                        if (clearedCount > 0) {
+                            AppLog.i("Settings", "已清除 $clearedCount 个旧安装包")
+                        }
+
+                        // GitHub API 镜像列表（原版 + 国内加速），依次尝试
                         val apiMirrors = listOf(
                             "https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",
                             "https://ghgo.xyz/https://api.github.com/repos/michaelggr/SWUpdater/releases/latest",

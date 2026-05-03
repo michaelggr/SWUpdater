@@ -1,4 +1,4 @@
-package com.swupdater.receiver
+﻿package com.swupdater.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -25,23 +25,35 @@ class InstallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val packageName = intent.data?.schemeSpecificPart ?: return
 
-        // 只关心魔灵召唤的包（检查所有可能的包名）
-        if (packageName !in AppInfoUtil.POSSIBLE_PACKAGE_NAMES) {
-            return
-        }
-
         when (intent.action) {
             Intent.ACTION_PACKAGE_ADDED -> {
-                AppLog.i(TAG, "魔灵召唤已安装: $packageName")
-                onGameInstalled(context)
+                if (packageName in AppInfoUtil.POSSIBLE_PACKAGE_NAMES) {
+                    AppLog.i(TAG, "魔灵召唤已安装: $packageName")
+                    onGameInstalled(context)
+                }
             }
             Intent.ACTION_PACKAGE_REPLACED -> {
-                AppLog.i(TAG, "魔灵召唤已更新: $packageName")
-                onGameInstalled(context)
+                if (packageName in AppInfoUtil.POSSIBLE_PACKAGE_NAMES) {
+                    AppLog.i(TAG, "魔灵召唤已更新: $packageName")
+                    onGameInstalled(context)
+                }
             }
             Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 AppLog.i(TAG, "本应用已更新: $packageName")
+                onSelfInstalled(context)
             }
+        }
+    }
+
+    /**
+     * 本应用自身安装/更新完成
+     * - 删除安装包
+     */
+    private fun onSelfInstalled(context: Context) {
+        // 删除已下载的自身安装包
+        val count = FileUtil.clearSelfUpdateCache(context)
+        if (count > 0) {
+            AppLog.i(TAG, "已清除 $count 个旧安装包")
         }
     }
 
