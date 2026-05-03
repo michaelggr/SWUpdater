@@ -86,7 +86,10 @@ class GameDataParser {
             value.isMapValue -> {
                 val mapValue = value.asMapValue()
                 val result = mutableMapOf<String, Any?>()
-                for ((k, v) in mapValue) {
+                val entries = mapValue.entrySet()
+                for (entry in entries) {
+                    val k = entry.key
+                    val v = entry.value
                     val key = if (k.isStringValue) k.asStringValue().asString() else k.toString()
                     result[key] = convertValue(v)
                 }
