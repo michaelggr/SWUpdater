@@ -512,10 +512,10 @@ object WallpaperManager {
 
     /**
      * 确保有默认壁纸可用
-     * 首次启动时从 assets 复制默认壁纸到缓存目录
-     * 返回当前壁纸文件（可能是已有的，也可能是新复制的默认壁纸）
+     * 首次启动时下载一张在线壁纸作为初始壁纸
+     * 返回当前壁纸文件（可能是已有的，也可能是新下载的）
      */
-    fun ensureDefaultWallpaper(context: Context): File? {
+    suspend fun ensureDefaultWallpaper(context: Context): File? {
         // 已有当前壁纸，无需默认
         val current = getCurrentWallpaperFile(context)
         if (current != null) return current
@@ -528,26 +528,25 @@ object WallpaperManager {
             return picked
         }
 
-        // 从 assets 复制默认壁纸
+        // 下载一张在线壁纸作为默认
         try {
-            val dir = getWallpaperDir(context)
-            val targetFile = File(dir, "default_wallpaper.jpg")
+            val url = LibrarySource.FULL_URLS.first() // 用第一张资料库壁纸
+            val fileName = getFileNameFromUrl(url)
+            val targetFile = File(getWallpaperDir(context), fileName)
 
             if (!targetFile.exists()) {
-                context.assets.open("wallpapers/default_wallpaper.jpg").use { input ->
-                    FileOutputStream(targetFile).use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                Log.i(TAG, "默认壁纸已复制到: ${targetFile.absolutePath}")
+                downloadWallpaper(context, url, fileName)
             }
 
-            setCurrentWallpaperName(context, targetFile.name)
-            return targetFile
+            if (targetFile.exists()) {
+                setCurrentWallpaperName(context, targetFile.name)
+                Log.i(TAG, "默认壁纸已下载: ${targetFile.absolutePath}")
+                return targetFile
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "复制默认壁纸失败", e)
-            return null
+            Log.e(TAG, "下载默认壁纸失败", e)
         }
+        return null
     }
 
     // ========== 随机换壁纸（含下载） ==========
