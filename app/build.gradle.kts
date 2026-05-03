@@ -89,7 +89,8 @@ android {
                 "META-INF/INDEX.LIST",
                 "META-INF/NOTICE",
                 "META-INF/LICENSE",
-                "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/io.netty.versions.properties"
             )
         }
     }
