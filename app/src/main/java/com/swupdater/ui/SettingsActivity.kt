@@ -1,12 +1,19 @@
 ﻿package com.swupdater.ui
 
+import android.app.Dialog
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.view.LayoutInflater
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.DropDownPreference
 import androidx.preference.Preference
@@ -22,8 +29,17 @@ import com.swupdater.util.FileUtil
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.concurrent.TimeUnit
 
 class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
@@ -41,6 +57,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
     }
 
     class SettingsFragment : PreferenceFragmentCompat() {
+
+        // 应用自身更新相关变量
+        private var selfUpdateDownloadDialog: Dialog? = null
+        private var selfUpdateDownloadJob: Job? = null
+        private var selfUpdateApkFile: File? = null
+        private var shouldCancelSelfUpdate = false
 
         private val storagePermissionLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -524,8 +546,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         /**
          * 检查本应用自身是否有新版本
-         * 从 GitHub Release 获取最新版本号和 APK 下载链接，直接下载
-         * 支持 GitHub API 镜像加速，国内可用
+         * 从 GitHub Release 获取最新版本号和 APK 下载链接
+         * 发现新版本后显示下载地址选择对话框
          */
         private fun checkSelfUpdate(currentVersion: String) {
             val pref = findPreference<Preference>("pref_version")
@@ -605,19 +627,8 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
 
                     if (latestVersion != currentVersion) {
                         pref?.summary = "v$currentVersion → v$latestVersion 有新版本！"
-
-                        if (apkUrl.isNotEmpty()) {
-                            // 直接下载 APK
-                            com.swupdater.service.DownloadService.start(
-                                requireContext(),
-                                apkUrl,
-                                latestVersion
-                            )
-                            Toast.makeText(requireContext(), "开始下载 SWUpdater v$latestVersion", Toast.LENGTH_SHORT).show()
-                        } else {
-                            // 获取不到 APK 直链，显示选择对话框
-                            showUpdateDialog(currentVersion, latestVersion, null)
-                        }
+                        // 显示下载地址选择对话框
+                        showSelfUpdateDownloadChoiceDialog(currentVersion, latestVersion, apkUrl)
                     } else {
                         pref?.summary = "v$currentVersion（已是最新版本）"
                         Toast.makeText(requireContext(), "当前已是最新版本 v$currentVersion", Toast.LENGTH_SHORT).show()
@@ -627,6 +638,227 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     Toast.makeText(requireContext(), "检查更新失败: ${e.message}", Toast.LENGTH_SHORT).show()
                     AppLog.e("Settings", "检查应用更新失败: ${e.message}")
                 }
+            }
+        }
+
+        /**
+         * 显示应用自身更新的下载地址选择对话框
+         */
+        private fun showSelfUpdateDownloadChoiceDialog(currentVersion: String, latestVersion: String, apkUrl: String) {
+            // 下载链接镜像列表
+            val downloadMirrors = mutableListOf<Pair<String, String>>()
+            
+            // 如果有直链，添加到开头
+            if (apkUrl.isNotEmpty()) {
+                downloadMirrors.add("直接下载（推荐）" to apkUrl)
+                // 添加加速镜像
+                downloadMirrors.add("ghgo 加速" to "https://ghgo.xyz/$apkUrl")
+                downloadMirrors.add("gh-proxy 加速" to "https://gh-proxy.com/$apkUrl")
+                downloadMirrors.add("ghproxy 加速" to "https://mirror.ghproxy.com/$apkUrl")
+            }
+            
+            // 添加入口页面
+            downloadMirrors.add("GitHub Release 页面" to "https://github.com/michaelggr/SWUpdater/releases/latest")
+
+            val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("发现新版本 v$latestVersion")
+                .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
+                .setItems(mirrorNames) { _, which ->
+                    val url = downloadMirrors[which].second
+                    if (which == 0 && apkUrl.isNotEmpty()) {
+                        // 选择直接下载，显示下载对话框
+                        showSelfUpdateDownloadDialog(url, latestVersion)
+                    } else if (which <= 3 && apkUrl.isNotEmpty()) {
+                        // 选择加速下载
+                        showSelfUpdateDownloadDialog(url, latestVersion)
+                    } else {
+                        // 选择打开页面
+                        try {
+                            startActivity(Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(url)
+                            ))
+                        } catch (e: Exception) {
+                            Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton("稍后", null)
+                .show()
+        }
+
+        /**
+         * 显示应用自身更新的下载对话框
+         */
+        private fun showSelfUpdateDownloadDialog(url: String, versionName: String) {
+            shouldCancelSelfUpdate = false
+
+            // 创建对话框
+            val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_self_update_download, null)
+            val dialog = Dialog(requireContext())
+            dialog.setContentView(dialogView)
+            dialog.setCancelable(false)
+
+            val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
+            val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
+            val tvProgress = dialogView.findViewById<TextView>(R.id.tv_progress)
+            val tvSizeInfo = dialogView.findViewById<TextView>(R.id.tv_size_info)
+            val btnCancel = dialogView.findViewById<Button>(R.id.btn_cancel)
+            val btnInstall = dialogView.findViewById<Button>(R.id.btn_install)
+
+            tvTitle.text = "正在下载 SWUpdater v$versionName"
+
+            // 取消按钮
+            btnCancel.setOnClickListener {
+                shouldCancelSelfUpdate = true
+                selfUpdateDownloadJob?.cancel()
+                dialog.dismiss()
+                Toast.makeText(requireContext(), "下载已取消", Toast.LENGTH_SHORT).show()
+            }
+
+            // 安装按钮初始不可用
+            btnInstall.isEnabled = false
+            btnInstall.setOnClickListener {
+                installApk()
+                dialog.dismiss()
+            }
+
+            dialog.show()
+            selfUpdateDownloadDialog = dialog
+
+            // 开始下载
+            selfUpdateDownloadJob = lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    downloadSelfUpdateApk(url, versionName, progressBar, tvProgress, tvSizeInfo, btnInstall, tvTitle)
+                } catch (e: Exception) {
+                    AppLog.e("Settings", "下载失败: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        /**
+         * 下载应用自身更新的 APK
+         */
+        private suspend fun downloadSelfUpdateApk(
+            url: String,
+            versionName: String,
+            progressBar: ProgressBar,
+            tvProgress: TextView,
+            tvSizeInfo: TextView,
+            btnInstall: Button,
+            tvTitle: TextView
+        ) = withContext(Dispatchers.IO) {
+            // 准备下载文件
+            val targetFile = FileUtil.getSelfUpdateApkFile(requireContext(), versionName)
+            selfUpdateApkFile = targetFile
+
+            // 确保目录存在
+            targetFile.parentFile?.mkdirs()
+
+            val client = OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .build()
+
+            val request = Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+
+            if (!response.isSuccessful) {
+                throw IOException("下载失败: ${response.code}")
+            }
+
+            val contentLength = response.body?.contentLength() ?: 0L
+            val inputStream = response.body?.byteStream() ?: throw IOException("无法获取响应流")
+
+            // 写入文件
+            var bytesRead: Long = 0
+            val buffer = ByteArray(8192)
+            var readCount: Int
+
+            targetFile.outputStream().use { outputStream ->
+                while (inputStream.read(buffer).also { readCount = it } != -1) {
+                    if (shouldCancelSelfUpdate) {
+                        // 删除部分下载的文件
+                        targetFile.delete()
+                        return@withContext
+                    }
+
+                    outputStream.write(buffer, 0, readCount)
+                    bytesRead += readCount
+
+                    // 更新进度
+                    if (contentLength > 0) {
+                        val progress = (bytesRead * 100 / contentLength).toInt()
+                        withContext(Dispatchers.Main) {
+                            progressBar.progress = progress
+                            tvProgress.text = "$progress%"
+                            tvSizeInfo.text = "${formatSize(bytesRead)} / ${formatSize(contentLength)}"
+                        }
+                    }
+                }
+            }
+
+            inputStream.close()
+
+            // 下载完成
+            withContext(Dispatchers.Main) {
+                progressBar.progress = 100
+                tvProgress.text = "100%"
+                tvSizeInfo.text = "${formatSize(bytesRead)} / ${formatSize(bytesRead)}"
+                btnInstall.isEnabled = true
+                tvTitle.text = "下载完成 v$versionName"
+            }
+
+            AppLog.i("Settings", "应用自身更新下载完成: ${targetFile.absolutePath}")
+        }
+
+        /**
+         * 安装 APK
+         */
+        private fun installApk() {
+            val apkFile = selfUpdateApkFile ?: return
+            if (!apkFile.exists()) {
+                Toast.makeText(requireContext(), "APK 文件不存在", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            val apkUri: Uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                FileProvider.getUriForFile(
+                    requireContext(),
+                    "${BuildConfig.APPLICATION_ID}.fileprovider",
+                    apkFile
+                )
+            } else {
+                Uri.fromFile(apkFile)
+            }
+
+            intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "无法安装 APK: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("Settings", "安装 APK 失败: ${e.message}")
+            }
+        }
+
+        /**
+         * 格式化文件大小
+         */
+        private fun formatSize(size: Long): String {
+            return when {
+                size < 1024 -> "$size B"
+                size < 1024 * 1024 -> "${size / 1024} KB"
+                else -> "${size / 1024 / 1024} MB"
             }
         }
 
