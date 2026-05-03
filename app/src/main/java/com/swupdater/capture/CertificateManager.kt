@@ -80,7 +80,7 @@ object CertificateManager {
 
             AppLog.i(TAG, "CA 证书加载成功")
         } catch (e: Exception) {
-            Log.e(TAG, "CA 证书加载失败，重新生成", e)
+            AppLog.e(TAG, "CA 证书加载失败，重新生成", e)
             caCertFile.parentFile?.let { generateRootCA(it) }
         }
     }
@@ -126,7 +126,7 @@ object CertificateManager {
 
             AppLog.i(TAG, "CA 根证书生成成功")
         } catch (e: Exception) {
-            Log.e(TAG, "CA 根证书生成失败", e)
+            AppLog.e(TAG, "CA 根证书生成失败", e)
             AppLog.e(TAG, "CA 根证书生成失败: ${e.message}")
         }
     }
@@ -189,7 +189,7 @@ object CertificateManager {
             AppLog.d(TAG, "叶子证书生成: $hostname")
             return LeafCertResult(leafKeyPair, leafCert)
         } catch (e: Exception) {
-            Log.e(TAG, "叶子证书生成失败: $hostname", e)
+            AppLog.e(TAG, "叶子证书生成失败: $hostname", e)
             AppLog.e(TAG, "叶子证书生成失败: ${e.message}")
             return null
         }
@@ -212,7 +212,7 @@ object CertificateManager {
                 or ((hash[3].toInt() and 0xFF) shl 24))
             return String.format("%08x", hashInt)
         } catch (e: Exception) {
-            Log.e(TAG, "计算证书 hash 失败", e)
+            AppLog.e(TAG, "计算证书 hash 失败", e)
             return null
         }
     }

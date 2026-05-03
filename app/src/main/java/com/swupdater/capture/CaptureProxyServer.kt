@@ -1,6 +1,5 @@
 ﻿package com.swupdater.capture
 
-import android.util.Log
 import com.swupdater.util.AppLog
 import io.netty.bootstrap.Bootstrap
 import io.netty.bootstrap.ServerBootstrap
@@ -85,8 +84,7 @@ class CaptureProxyServer(
             AppLog.i(TAG, "代理服务器启动成功，端口: $port")
             return true
         } catch (e: Exception) {
-            Log.e(TAG, "代理服务器启动失败", e)
-            AppLog.e(TAG, "代理服务器启动失败: ${e.message}")
+            AppLog.e(TAG, "代理服务器启动失败", e)
             stop()
             return false
         }
@@ -200,7 +198,7 @@ class CaptureProxyServer(
                 ctx.pipeline().remove(this::class.java)
                 ctx.pipeline().addLast(RelayHandler(remoteChannel))
 
-                remoteChannel.writeAndFlush(request.retain())
+                remoteChannel.writeAndFlush(request)
             }
         }
 
@@ -239,7 +237,7 @@ class CaptureProxyServer(
                 SslContextBuilder.forServer(kmf)
                     .build()
             } catch (e: Exception) {
-                Log.e(TAG, "构建 SSL 上下文失败", e)
+                AppLog.e(TAG, "构建 SSL 上下文失败", e)
                 null
             }
         }

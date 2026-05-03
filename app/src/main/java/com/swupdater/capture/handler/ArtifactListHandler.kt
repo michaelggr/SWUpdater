@@ -5,7 +5,7 @@ import com.swupdater.capture.GameCommandHandler
 class ArtifactListHandler : GameCommandHandler {
 
     override fun handle(data: Map<String, Any?>): Map<String, Any?> {
-        val artifactList = (data["artifact_list"] as? List<*>) ?: emptyList()
+        val artifactList = (data["artifact_list"] as? List<*>) ?: emptyList<Any?>()
 
         val artifacts = artifactList.mapNotNull { artifact ->
             (artifact as? Map<String, Any?>)?.let { parseArtifact(it) }

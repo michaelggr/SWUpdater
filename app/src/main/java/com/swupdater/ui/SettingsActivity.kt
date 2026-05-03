@@ -608,15 +608,9 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
          */
         private fun startDownload(versionInfo: VersionInfo, channel: DownloadChannel) {
             when (channel.type) {
-                DownloadChannel.ChannelType.APK_DIRECT -> {
-                    // 直接下载APK
-                    com.swupdater.service.DownloadService.start(
-                        requireContext(),
-                        versionInfo.downloadUrl,
-                        versionInfo.versionName
-                    )
-                    Toast.makeText(requireContext(), "从『${channel.name}』开始下载最新版本: ${versionInfo.versionName}", Toast.LENGTH_SHORT).show()
-                }
+                DownloadChannel.ChannelType.OFFICIAL_WEB,
+                DownloadChannel.ChannelType.APP_STORE,
+                DownloadChannel.ChannelType.ACCELERATOR,
                 DownloadChannel.ChannelType.CUSTOM -> {
                     // 打开渠道URL（应用市场等）
                     try {
@@ -626,6 +620,15 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                     } catch (e: Exception) {
                         Toast.makeText(requireContext(), "打开渠道失败: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
+                }
+                DownloadChannel.ChannelType.APK_DIRECT -> {
+                    // 直接下载APK
+                    com.swupdater.service.DownloadService.start(
+                        requireContext(),
+                        versionInfo.downloadUrl,
+                        versionInfo.versionName
+                    )
+                    Toast.makeText(requireContext(), "从『${channel.name}』开始下载最新版本: ${versionInfo.versionName}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

@@ -5,7 +5,7 @@ import com.swupdater.capture.GameCommandHandler
 class UnitListHandler : GameCommandHandler {
 
     override fun handle(data: Map<String, Any?>): Map<String, Any?> {
-        val unitList = (data["unit_list"] as? List<*>) ?: emptyList()
+        val unitList = (data["unit_list"] as? List<*>) ?: emptyList<Any?>()
 
         val units = unitList.mapNotNull { unit ->
             (unit as? Map<String, Any?>)?.let { parseUnit(it) }
