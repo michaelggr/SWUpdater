@@ -14,16 +14,32 @@ object FileUtil {
     private val sizeFormat = DecimalFormat("#,##0.##")
 
     /**
-     * 获取应用下载目录（公用 Download 目录）
-     * 路径: /sdcard/Download/SWUpdater/updates
+     * 获取应用下载目录
+     * Android 10+: 使用应用专属外部存储（无需权限）
+     * Android 9-: 使用公共 Download 目录
      */
-    @Suppress("UNUSED_PARAMETER")
     fun getDownloadDir(context: Context): File {
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "SWUpdater/updates"
-        )
-        if (!dir.exists()) dir.mkdirs()
+        val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+: 应用专属目录，无需存储权限
+            File(
+                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                "SWUpdater/updates"
+            )
+        } else {
+            // Android 9-: 公共 Download 目录
+            @Suppress("DEPRECATION")
+            File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "SWUpdater/updates"
+            )
+        }
+        if (!dir.exists() && !dir.mkdirs()) {
+            // mkdirs失败时降级到应用私有目录
+            AppLog.e("FileUtil", "无法创建目录: ${dir.absolutePath}")
+            val fallback = File(context.filesDir, "SWUpdater/updates")
+            fallback.mkdirs()
+            return fallback
+        }
         return dir
     }
 

@@ -117,21 +117,7 @@ class KeepAliveService : Service() {
         }
 
         fun isDeviceRooted(): Boolean {
-            return try {
-                val process = Runtime.getRuntime().exec(arrayOf("which", "su"))
-                val input = process.inputStream.bufferedReader().readText()
-                process.waitFor()
-                input.isNotEmpty()
-            } catch (e: Exception) {
-                val paths = listOf(
-                    "/system/bin/su",
-                    "/system/xbin/su",
-                    "/sbin/su",
-                    "/data/local/xbin/su",
-                    "/data/local/bin/su"
-                )
-                paths.any { java.io.File(it).exists() }
-            }
+            return com.swupdater.util.RootInstallHelper.isDeviceRooted()
         }
     }
 
@@ -143,7 +129,12 @@ class KeepAliveService : Service() {
         AppLog.section(TAG, "保活服务创建")
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        // Android 14+ 必须指定前台服务类型
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        }
         acquireWakeLock()
         startHeartbeat()
 
@@ -156,7 +147,11 @@ class KeepAliveService : Service() {
         AppLog.i(TAG, "保活服务 onStartCommand")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForeground(NOTIFICATION_ID, buildNotification())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            }
         }
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)

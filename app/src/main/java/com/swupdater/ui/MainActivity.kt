@@ -2,6 +2,7 @@
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -26,6 +27,7 @@ import com.swupdater.capture.CaptureService
 import com.swupdater.util.AppLog
 import com.swupdater.util.FileUtil
 import com.swupdater.util.RootInstallHelper
+import com.swupdater.util.ThemeManager
 import com.swupdater.util.WallpaperManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,6 +68,19 @@ class MainActivity : AppCompatActivity() {
         // 权限请求返回后，直接尝试下载
         lifecycleScope.launch {
             performDownloadWallpaper()
+        }
+    }
+
+    // 悬浮窗权限设置页返回监听
+    private val overlayPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (android.provider.Settings.canDrawOverlays(this)) {
+                SnackbarHelper.success(binding.root, "悬浮窗权限已授予").show()
+            } else {
+                SnackbarHelper.warning(binding.root, "未授予悬浮窗权限，抓取时将无法显示状态悬浮窗").show()
+            }
         }
     }
 
@@ -138,10 +153,10 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // 2. 系统代理检测
-        val proxyHost = android.net.Proxy.getHost(this)
-        val proxyPort = android.net.Proxy.getPort(this)
-        if (!proxyHost.isNullOrEmpty() && proxyPort > 0) {
+        // 2. 系统代理检测（使用系统属性，兼容所有版本）
+        val proxyHost = System.getProperty("http.proxyHost") ?: ""
+        val proxyPort = System.getProperty("http.proxyPort")?.toIntOrNull() ?: 0
+        if (proxyHost.isNotEmpty() && proxyPort > 0) {
             return CaptureCheckResult(
                 canStart = false,
                 hasWarning = false,
@@ -183,10 +198,12 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // 6. 悬浮窗权限检测（警告级别，不影响抓取，只是无法显示悬浮窗）
+        // 6. 悬浮窗权限检测（警告级别，不影响抓取，引导用户授权）
         var overlayWarning: String? = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!android.provider.Settings.canDrawOverlays(this)) {
+                // 弹窗引导用户去设置页面授权
+                showOverlayPermissionDialog()
                 overlayWarning = "⚠️ 未授予悬浮窗权限，无法在游戏上显示抓取状态"
             }
         }
@@ -254,6 +271,26 @@ class MainActivity : AppCompatActivity() {
         val hasWarning: Boolean,
         val message: String
     )
+
+    /**
+     * 引导用户授予悬浮窗权限
+     * Android 6.0+ 需要用户手动在系统设置中授权
+     * Android 8.0+ 严格限制 TYPE_APPLICATION_OVERLAY 必须有此权限
+     */
+    private fun showOverlayPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("需要悬浮窗权限")
+            .setMessage("抓取功能需要在游戏上层显示状态悬浮窗。\n\n请前往系统设置，找到本应用并开启「显示在其他应用上层」权限。")
+            .setPositiveButton("去设置") { _, _ ->
+                val intent = Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                overlayPermissionLauncher.launch(intent)
+            }
+            .setNegativeButton("稍后再说", null)
+            .show()
+    }
 
     private fun updateCaptureUI() {
         val running = CaptureService.isRunning

@@ -81,6 +81,9 @@ class SplashActivity : AppCompatActivity() {
         private const val KEY_FIRST_LAUNCH = "first_launch"
     }
 
+    @Volatile
+    private var isNavigating = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         com.swupdater.util.ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
@@ -119,8 +122,11 @@ class SplashActivity : AppCompatActivity() {
         val installGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             packageManager.canRequestPackageInstalls()
         } else true
+        val notificationGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else true
 
-        return storageGranted && overlayGranted && installGranted
+        return storageGranted && overlayGranted && installGranted && notificationGranted
     }
 
     private fun setupClickListeners() {
@@ -304,6 +310,8 @@ class SplashActivity : AppCompatActivity() {
      * 所有必要权限获取完成
      */
     private fun onAllEssentialPermissionsGranted() {
+        if (isNavigating) return
+        isNavigating = true
         AppLog.i(TAG, "所有必要权限已获取，准备进入主页")
         binding.tvStatus.text = getString(R.string.permission_ready)
         markFirstLaunchComplete()
@@ -362,6 +370,8 @@ class SplashActivity : AppCompatActivity() {
      * 跳过权限请求，直接进入主页
      */
     private fun skipToMain() {
+        if (isNavigating) return
+        isNavigating = true
         markFirstLaunchComplete()
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(EXTRA_FROM_SPLASH, true)
@@ -386,20 +396,12 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 只在按钮文本还未是「所有权限已获取」时才更新
-        if (binding.btnRequestPermission.text != getString(R.string.permissions_all_granted)) {
-            updatePermissionStatus()
-            
-            // 检查是否所有权限都已获取，如果是就自动进入
-            val batteryOptimized = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-                pm.isIgnoringBatteryOptimizations(packageName)
-            } else true
+        if (isNavigating) return
 
-            if (WallpaperManager.hasStoragePermission(this) &&
-                Settings.canDrawOverlays(this) &&
-                (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()) &&
-                batteryOptimized) {
+        updatePermissionStatus()
+
+        if (areAllEssentialPermissionsGranted()) {
+            if (binding.btnRequestPermission.text != getString(R.string.permissions_all_granted)) {
                 binding.tvStatus.text = getString(R.string.permission_ready)
                 onAllEssentialPermissionsGranted()
             }

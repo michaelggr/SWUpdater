@@ -1,10 +1,15 @@
 ﻿package com.swupdater.capture
 
 import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
@@ -49,7 +54,7 @@ class CaptureOverlayService : Service() {
             val intent = Intent(context, CaptureOverlayService::class.java).apply {
                 action = ACTION_SHOW
             }
-            context.startService(intent)
+            safeStartService(context, intent)
         }
 
         fun updateStatus(context: Context, status: String, detail: String = "") {
@@ -58,7 +63,7 @@ class CaptureOverlayService : Service() {
                 putExtra(EXTRA_STATUS, status)
                 putExtra(EXTRA_DETAIL, detail)
             }
-            context.startService(intent)
+            safeStartService(context, intent)
         }
 
         fun showSuccess(context: Context, filePath: String) {
@@ -66,14 +71,31 @@ class CaptureOverlayService : Service() {
                 action = ACTION_SUCCESS
                 putExtra(EXTRA_FILE_PATH, filePath)
             }
-            context.startService(intent)
+            safeStartService(context, intent)
         }
 
         fun hide(context: Context) {
             val intent = Intent(context, CaptureOverlayService::class.java).apply {
                 action = ACTION_HIDE
             }
-            context.startService(intent)
+            safeStartService(context, intent)
+        }
+
+        /**
+         * 安全启动服务，兼容Android 8+后台限制
+         * Android 8+不允许在后台startService，会抛IllegalStateException
+         * 本服务不是前台服务，不能用startForegroundService（5秒内必须调startForeground否则ANR）
+         * 正常流程中由CaptureService（前台服务）启动，不会触发后台限制
+         * 此处仅做异常兜底，防止极端情况下崩溃
+         */
+        private fun safeStartService(context: Context, intent: Intent) {
+            try {
+                context.startService(intent)
+            } catch (e: IllegalStateException) {
+                AppLog.w(TAG, "Android 8+后台启动限制，悬浮窗服务未能启动: ${e.message}")
+            } catch (e: Exception) {
+                AppLog.e(TAG, "启动悬浮窗服务失败: ${e.message}")
+            }
         }
     }
 
@@ -301,7 +323,7 @@ class CaptureOverlayService : Service() {
         var initialTouchY = 0f
         var isDragging = false
 
-        view.setOnTouchListener { _, event ->
+        view.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
@@ -319,15 +341,15 @@ class CaptureOverlayService : Service() {
                     if (isDragging) {
                         params.x = initialX + dx.toInt()
                         params.y = initialY + dy.toInt()
-                        windowManager?.updateViewLayout(view, params)
+                        windowManager?.updateViewLayout(v, params)
                     }
                 }
                 MotionEvent.ACTION_UP -> {
-                    // 短按不处理（让子View的点击事件正常触发）
+                    // 如果是拖动，消费事件；如果是点击，不消费让子View处理
                 }
             }
-            // 不消费事件，让触摸穿透到下层（游戏）
-            !isDragging
+            // 拖动时消费事件，点击时不消费（让分享按钮等子View可以响应）
+            isDragging
         }
     }
 
@@ -373,14 +395,85 @@ class CaptureOverlayService : Service() {
 
     /**
      * 检查是否有悬浮窗权限
-     * Android 8+ 需要用户在设置中授权
-     * Android 8以下 只需声明权限即可
+     * Android 8+ 需要用户在设置中授权 TYPE_APPLICATION_OVERLAY
+     * Android 6-7 需要用户在设置中授权 TYPE_PHONE
+     * Android 6以下 只需声明权限即可
+     * 权限缺失时通过通知引导用户去设置
      */
     private fun hasOverlayPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            android.provider.Settings.canDrawOverlays(this)
-        } else {
-            true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!android.provider.Settings.canDrawOverlays(this)) {
+                AppLog.w(TAG, "没有悬浮窗权限，发送通知引导用户授权")
+                showOverlayPermissionNotification()
+                return false
+            }
         }
+        return true
+    }
+
+    /**
+     * 通过通知引导用户去设置页面授予悬浮窗权限
+     * 适用于从CaptureService启动时，用户不在MainActivity的场景
+     */
+    private fun showOverlayPermissionNotification() {
+        // Android 13+ 检查通知权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                AppLog.w(TAG, "没有通知权限，无法发送悬浮窗权限引导通知")
+                return
+            }
+        }
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        // Android 8+ 需要通知渠道
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "overlay_permission",
+                "悬浮窗权限",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "引导授予悬浮窗权限"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // 点击通知跳转到悬浮窗权限设置页
+        val settingsIntent = Intent(
+            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            1001,
+            settingsIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, "overlay_permission")
+                .setContentTitle("需要悬浮窗权限")
+                .setContentText("点击此处开启「显示在其他应用上层」权限")
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+                .setContentTitle("需要悬浮窗权限")
+                .setContentText("点击此处开启悬浮窗权限")
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+        }
+
+        notificationManager.notify(1001, notification)
     }
 }

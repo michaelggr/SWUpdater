@@ -45,13 +45,23 @@ class CaptureProxyServer(
     companion object {
         private const val TAG = "ProxyServer"
 
+        // 游戏相关域名（参考 sw-exporter 的配置）
         val GAME_DOMAINS = setOf(
-            "summonerswar.sky3ds.com",
-            "com2us.com",
-            "withhive.com",
-            "hive.com2us.com",
-            "api.withhive.com",
-            "qpyou.cn"
+            "summonerswar.sky3ds.com",   // 魔灵召唤主服务器
+            "com2us.com",                 // Com2uS 主站
+            "withhive.com",               // Hive 平台
+            "hive.com2us.com",            // Hive 子域名
+            "api.withhive.com",           // Hive API
+            "qpyou.cn",                   // 友皆乐（中国区 CDN）
+            "game.withhive.com",          // Hive 游戏服务
+            "csq.withhive.com",           // Hive 客户服务
+            "analytics.withhive.com",     // Hive 分析
+            "config.withhive.com",        // Hive 配置
+            "cdn.withhive.com",           // Hive CDN
+            "api.com2us.com",             // Com2uS API
+            "mobileapi.com2us.com",       // Com2uS 移动 API
+            "sgvr.com2us.com",            // Com2uS 服务器
+            "summonerswar.com"            // 魔灵召唤官网
         )
 
         fun isGameDomain(hostname: String): Boolean {
@@ -137,7 +147,6 @@ class CaptureProxyServer(
             val response = DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
             ctx.writeAndFlush(response)
 
-            // 代理作为 SSL 服务端，与客户端建立 TLS 连接
             val serverSslContext = buildServerSslContext(leafResult)
             if (serverSslContext == null) {
                 AppLog.e(TAG, "SSL 上下文创建失败: $hostname")
@@ -150,6 +159,9 @@ class CaptureProxyServer(
             pipeline.remove(HttpObjectAggregator::class.java)
             pipeline.remove(this::class.java)
 
+            // 先暂停读取，等远程连接建立后再恢复
+            ctx.channel().config().isAutoRead = false
+
             // 客户端侧：代理作为 TLS 服务端解密客户端流量
             pipeline.addLast(serverSslContext.newHandler(ctx.alloc()))
 
@@ -160,10 +172,12 @@ class CaptureProxyServer(
                     .build()
                 remoteChannel.pipeline().addLast(clientSslContext.newHandler(remoteChannel.alloc(), hostname, port))
 
-                // 客户端→代理→远程：解密后的请求明文转发（加密后发出）
+                // 客户端→代理→远程：解密后的请求明文转发
                 pipeline.addLast(MitmRelayHandler(ctx.channel(), hostname, parser, isRequest = true))
-                // 远程→代理→客户端：解密后的响应明文转发（加密后发出）
+                // 远程→代理→客户端：解密后的响应明文解析+转发
                 remoteChannel.pipeline().addLast(MitmRelayHandler(remoteChannel, hostname, parser, isRequest = false))
+
+                // 远程连接就绪后恢复读取
                 ctx.channel().config().isAutoRead = true
             }
         }
@@ -270,9 +284,12 @@ class CaptureProxyServer(
             val bytes = ByteArray(msg.readableBytes())
             msg.getBytes(msg.readerIndex(), bytes)
 
-            // 只解析服务端响应（解密后的明文）
+            // 解析服务端响应（主要数据来源）
             if (!isRequest) {
                 parser.processResponse(bytes, hostname)
+            } else {
+                // 请求方向也传递给解析器，用于提取会话密钥等
+                parser.processRequest(bytes, hostname)
             }
 
             if (relayChannel.isActive) {

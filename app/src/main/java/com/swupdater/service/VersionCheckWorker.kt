@@ -1,4 +1,4 @@
-﻿package com.swupdater.service
+package com.swupdater.service
 
 import android.content.Context
 import androidx.preference.PreferenceManager

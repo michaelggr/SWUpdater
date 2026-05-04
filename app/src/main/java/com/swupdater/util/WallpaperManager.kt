@@ -236,7 +236,8 @@ object WallpaperManager {
 
     /**
      * 获取壁纸下载保存目录（用户可自定义）
-     * 默认路径: /sdcard/Download/SWUpdater/wallpapers (公共目录)
+     * Android 10+: 应用专属外部存储（无需权限）
+     * Android 9-: 公共 Download 目录
      */
     fun getWallpaperDownloadDir(context: Context): File {
         val customPath = getPrefs(context).getString(PREF_CUSTOM_DOWNLOAD_DIR, null)
@@ -245,24 +246,48 @@ object WallpaperManager {
             if (!dir.exists()) dir.mkdirs()
             return dir
         }
-        val dir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "SWUpdater/wallpapers"
-        )
-        if (!dir.exists()) dir.mkdirs()
+        val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+: 应用专属目录，无需存储权限
+            File(
+                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                "SWUpdater/wallpapers"
+            )
+        } else {
+            // Android 9-: 公共 Download 目录
+            @Suppress("DEPRECATION")
+            File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "SWUpdater/wallpapers"
+            )
+        }
+        if (!dir.exists() && !dir.mkdirs()) {
+            AppLog.e(TAG, "无法创建壁纸下载目录: ${dir.absolutePath}")
+        }
         return dir
     }
 
     // ========== 权限检查 ==========
 
     /**
-     * 检查是否有存储权限（MANAGE_EXTERNAL_STORAGE）
+     * 检查是否有存储权限
+     * Android 11+: 需要 MANAGE_EXTERNAL_STORAGE
+     * Android 10: requestLegacyExternalStorage 生效时可直接访问
+     * Android 9-: 需要 WRITE_EXTERNAL_STORAGE 运行时权限
      */
     fun hasStoragePermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else {
-            true // Android 11 以下不需要特殊权限
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                Environment.isExternalStorageManager()
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                true
+            }
+            else -> {
+                android.content.pm.PackageManager.PERMISSION_GRANTED ==
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    )
+            }
         }
     }
 

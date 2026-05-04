@@ -17,9 +17,17 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        val action = intent.action ?: return
 
-        AppLog.section(TAG, "设备启动完成")
+        val validActions = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            "android.intent.action.QUICKBOOT_POWERON",
+            Intent.ACTION_LOCKED_BOOT_COMPLETED,
+            Intent.ACTION_USER_PRESENT
+        )
+        if (action !in validActions) return
+
+        AppLog.section(TAG, "系统事件: $action")
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 
@@ -31,14 +39,9 @@ class BootReceiver : BroadcastReceiver() {
             AppLog.i(TAG, "已调度自动检查任务，间隔: ${intervalHours}h")
         }
 
-        if (KeepAliveService.isEnabled(context)) {
+        if (KeepAliveService.isEnabled(context) || KeepAliveService.isBootAutoStartEnabled(context)) {
             KeepAliveService.start(context)
-            AppLog.i(TAG, "已启动保活服务")
-        }
-
-        if (KeepAliveService.isBootAutoStartEnabled(context)) {
-            KeepAliveService.start(context)
-            AppLog.i(TAG, "开机自启已启用，启动保活服务")
+            AppLog.i(TAG, "保活服务已启动")
         }
     }
 }

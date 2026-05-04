@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 信任系统 CA 证书（包括 Root 安装的自定义 CA） -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- 游戏域名：必须信任自定义 CA 才能进行 MITM -->
+    <domain-config>
+        <domain includeSubdomains="true">summonerswar.sky3ds.com</domain>
+        <domain includeSubdomains="true">com2us.com</domain>
+        <domain includeSubdomains="true">withhive.com</domain>
+        <domain includeSubdomains="true">qpyou.cn</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -120,7 +121,16 @@ class CaptureService : Service() {
             return
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification("正在启动抓取服务..."))
+        // Android 14+ 必须指定前台服务类型，否则抛 SecurityException
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification("正在启动抓取服务..."),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification("正在启动抓取服务..."))
+        }
         isRunning = true
 
         serviceScope.launch {
@@ -197,8 +207,7 @@ class CaptureService : Service() {
                 delay(5000)
                 if (hasGameData && isAutoStopEnabled(this@CaptureService)) {
                     AppLog.i(TAG, "已捕获游戏数据，自动停止抓取")
-                    saveCapturedData()
-                    stopCapture()
+                    stopCapture(saveData = true)
                     break
                 }
             }
@@ -212,9 +221,11 @@ class CaptureService : Service() {
 
         val summary = when (command) {
             "HubUserLogin" -> "登录数据"
-            "HubUnitList" -> "魔灵列表 (${(data["count"] as? Int) ?: "?"}个)"
-            "HubUserRunes", "HubGetRuneList" -> "符文列表 (${(data["count"] as? Int) ?: "?"}个)"
-            "HubGetArtifactList" -> "遗物列表 (${(data["count"] as? Int) ?: "?"}个)"
+            "HubUnitList" -> "魔灵列表 (${(data["count"] as? Number)?.toInt() ?: "?"}个)"
+            "HubUserRunes", "HubGetRuneList" -> "符文列表 (${(data["count"] as? Number)?.toInt() ?: "?"}个)"
+            "HubGetArtifactList" -> "遗物列表 (${(data["count"] as? Number)?.toInt() ?: "?"}个)"
+            "BattleDungeonResult", "BattleDungeonResult_V2" -> "副本结果"
+            "Summon" -> "召唤结果"
             else -> command
         }
 
@@ -239,12 +250,21 @@ class CaptureService : Service() {
         }
     }
 
-    private fun stopCapture() {
+    private fun stopCapture(saveData: Boolean = false) {
         if (!isRunning) return
 
         serviceScope.launch {
+            if (saveData && hasGameData) {
+                saveCapturedData()
+            }
             cleanupCapture()
-            stopForeground(STOP_FOREGROUND_REMOVE)
+            // stopForeground(int) 从 API 33 才有，低版本用 stopForeground(boolean)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
             stopSelf()
         }
     }
@@ -258,10 +278,6 @@ class CaptureService : Service() {
         proxyServer?.stop()
         proxyServer = null
 
-        if (hasGameData && !capturedData.isEmpty()) {
-            saveCapturedData()
-        }
-
         if (!isKeepCertEnabled(this)) {
             CertificateManager.uninstallCaFromSystem(this)
         }
@@ -270,7 +286,6 @@ class CaptureService : Service() {
         if (!hasGameData) {
             CaptureOverlayService.hide(this)
         }
-        // 如果有数据，悬浮窗保持显示成功状态，用户手动关闭或超时后隐藏
 
         parser?.reset()
         parser = null

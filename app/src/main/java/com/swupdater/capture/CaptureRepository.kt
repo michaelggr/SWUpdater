@@ -27,10 +27,14 @@ object CaptureRepository {
         val file = File(captureDir, fileName)
 
         return try {
+            // 输出格式兼容 sw-exporter，方便第三方工具（swop、swarfarm等）使用
             val wrapper = mutableMapOf<String, Any?>(
                 "timestamp" to System.currentTimeMillis(),
                 "date" to SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()),
-                "source" to "SWUpdater"
+                "source" to "SWUpdater",
+                // sw-exporter 兼容字段
+                "installer" to "SWUpdater-Android",
+                "version" to getAppVersion(context)
             )
             wrapper.putAll(data)
 
@@ -129,12 +133,36 @@ object CaptureRepository {
         return File(FileUtil.getCaptureBaseDir(context), CAPTURE_DIR)
     }
 
+    private fun getAppVersion(context: Context): String {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+
     private object FileUtil {
+        /**
+         * 获取抓取数据基础目录
+         * Android 10+: 应用专属外部存储（无需权限）
+         * Android 9-: 公共 Download 目录
+         */
         fun getCaptureBaseDir(context: Context): File {
-            val externalDir = android.os.Environment.getExternalStoragePublicDirectory(
-                android.os.Environment.DIRECTORY_DOWNLOADS
-            )
-            return File(externalDir, "SWUpdater")
+            return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val dir = java.io.File(
+                    context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS),
+                    "SWUpdater"
+                )
+                if (!dir.exists()) dir.mkdirs()
+                dir
+            } else {
+                @Suppress("DEPRECATION")
+                val externalDir = android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS
+                )
+                java.io.File(externalDir, "SWUpdater")
+            }
         }
     }
 }

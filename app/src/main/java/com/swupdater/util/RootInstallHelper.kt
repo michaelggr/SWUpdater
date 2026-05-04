@@ -1,5 +1,6 @@
 package com.swupdater.util
 
+import android.os.Build
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -9,20 +10,22 @@ object RootInstallHelper {
     private const val TAG = "RootInstall"
 
     fun isDeviceRooted(): Boolean {
+        // 方式1：尝试执行 su 命令（比 which 更可靠）
         try {
-            val process = Runtime.getRuntime().exec(arrayOf("which", "su"))
+            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val path = reader.readLine()
+            val output = reader.readLine()
             reader.close()
             process.waitFor()
-            if (!path.isNullOrEmpty()) {
-                AppLog.i(TAG, "Root 检测: which su → $path")
+            if (output?.contains("uid=0") == true) {
+                AppLog.i(TAG, "Root 检测: su 可执行 → $output")
                 return true
             }
         } catch (e: Exception) {
-            AppLog.d(TAG, "Root 检测: which su 失败 → ${e.message}")
+            AppLog.d(TAG, "Root 检测: su 执行失败 → ${e.message}")
         }
 
+        // 方式2：检查常见 su 路径
         val suPaths = listOf(
             "/system/bin/su",
             "/system/xbin/su",
@@ -48,7 +51,8 @@ object RootInstallHelper {
         }
 
         return try {
-            val command = "pm install -r -g \"$apkPath\""
+            // 根据Android版本选择不同的安装参数
+            val command = buildInstallCommand(apkPath)
             AppLog.i(TAG, "Root 静默安装命令: $command")
 
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
@@ -74,6 +78,26 @@ object RootInstallHelper {
         } catch (e: Exception) {
             AppLog.e(TAG, "Root 静默安装异常: ${e.message}")
             InstallResult(false, e.message ?: "安装异常")
+        }
+    }
+
+    /**
+     * 根据Android版本构建pm install命令
+     * -g 在 Android 12+ 不再自动授予所有权限，但仍可保留
+     * Android 14+ 建议使用会话安装模式
+     */
+    private fun buildInstallCommand(apkPath: String): String {
+        return when {
+            Build.VERSION.SDK_INT >= 34 -> {
+                // Android 14+: 使用会话安装（更可靠）
+                "pm install-create -S ${File(apkPath).length()} | " +
+                    "grep -o '[0-9]*' | " +
+                    "xargs -I{} sh -c 'pm install-write -S ${File(apkPath).length()} {} \"$apkPath\" && pm install-commit {}'"
+            }
+            else -> {
+                // Android 13 及以下：传统方式
+                "pm install -r -g \"$apkPath\""
+            }
         }
     }
 

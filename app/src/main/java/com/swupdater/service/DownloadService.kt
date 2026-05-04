@@ -43,12 +43,18 @@ class DownloadService : Service() {
             ContextCompat.startForegroundService(context, intent)
         }
 
-        @Suppress("DEPRECATION")
         fun isWifiConnected(context: Context): Boolean {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkInfo = cm.activeNetworkInfo
-            return networkInfo != null && networkInfo.isConnected &&
-                    networkInfo.type == ConnectivityManager.TYPE_WIFI
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = cm.activeNetwork ?: return false
+                val caps = cm.getNetworkCapabilities(network) ?: return false
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+            } else {
+                @Suppress("DEPRECATION")
+                val networkInfo = cm.activeNetworkInfo
+                networkInfo != null && networkInfo.isConnected &&
+                        networkInfo.type == ConnectivityManager.TYPE_WIFI
+            }
         }
 
         private const val TAG = "DownloadSvc"
@@ -69,7 +75,12 @@ class DownloadService : Service() {
                 val versionName = intent.getStringExtra(EXTRA_VERSION_NAME) ?: "unknown"
 
                 val initialNotification = DownloadNotificationHelper.createInitialNotification(this)
-                startForeground(NOTIFICATION_ID, initialNotification)
+                // Android 14+ 必须指定前台服务类型
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(NOTIFICATION_ID, initialNotification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                } else {
+                    startForeground(NOTIFICATION_ID, initialNotification)
+                }
 
                 isDownloading = true
                 AppLog.section(TAG, "前台下载服务启动")
@@ -105,7 +116,7 @@ class DownloadService : Service() {
                     DownloadState.VERIFIED -> {
                         isDownloading = false
                         AppLog.i(TAG, "下载校验通过，准备安装")
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {
                             @Suppress("DEPRECATION")
@@ -158,7 +169,7 @@ class DownloadService : Service() {
                         } else if (progress.state == DownloadState.VERIFY_FAILED) {
                             AppLog.e(TAG, "校验失败")
                         }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             stopForeground(STOP_FOREGROUND_DETACH)
                         } else {
                             @Suppress("DEPRECATION")

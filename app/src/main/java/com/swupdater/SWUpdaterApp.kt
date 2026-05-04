@@ -1,6 +1,7 @@
-﻿package com.swupdater
+package com.swupdater
 
 import android.app.Application
+import androidx.preference.PreferenceManager
 import com.swupdater.receiver.BootReceiver
 import com.swupdater.service.KeepAliveService
 import com.swupdater.service.VersionCheckWorker
@@ -15,7 +16,6 @@ class SWUpdaterApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // 初始化日志系统（读取配置、清理7天前的旧日志）
         AppLog.init(this)
 
         AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.6.0")
@@ -31,7 +31,7 @@ class SWUpdaterApp : Application() {
     }
 
     private fun initAutoCheck() {
-        val prefs = getSharedPreferences(BootReceiver.PREFS_NAME, MODE_PRIVATE)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val autoCheck = prefs.getBoolean(BootReceiver.PREF_AUTO_CHECK, true)
         val intervalHours = prefs.getString(BootReceiver.PREF_CHECK_INTERVAL, "6")
             ?.toLongOrNull() ?: 6L

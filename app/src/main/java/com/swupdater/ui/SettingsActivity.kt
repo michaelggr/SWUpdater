@@ -388,23 +388,34 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 summary = "查看已导出的 JSON 配置文件"
                 isEnabled = isRooted
                 setOnPreferenceClickListener {
-                    val dir = java.io.File(
-                        android.os.Environment.getExternalStoragePublicDirectory(
-                            android.os.Environment.DIRECTORY_DOWNLOADS
-                        ), "SWUpdater/capture"
-                    )
-                    if (!dir.exists()) dir.mkdirs()
+                    // 使用 CaptureRepository 的路径逻辑，确保与实际存储位置一致
+                    val captureDir = com.swupdater.capture.CaptureRepository.getCaptureHistory(requireContext())
+                        .firstOrNull()?.filePath?.let { java.io.File(it).parentFile }
+                        ?: run {
+                            // 降级：直接使用应用专属目录
+                            val baseDir = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                context?.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            }
+                            java.io.File(baseDir, "SWUpdater/capture")
+                        }
+                    if (!captureDir.exists()) captureDir.mkdirs()
                     try {
-                        val uri = android.provider.MediaStore.Files.getContentUri("external")
+                        // 使用 SAF 打开文档树
                         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                            setDataAndType(uri, "vnd.android.document/directory")
-                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            setDataAndType(
+                                android.provider.MediaStore.Files.getContentUri("external"),
+                                "*/*"
+                            )
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         startActivity(intent)
                     } catch (_: Exception) {
                         android.widget.Toast.makeText(
                             requireContext(),
-                            "目录: ${dir.absolutePath}",
+                            "目录: ${captureDir.absolutePath}",
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     }

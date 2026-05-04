@@ -27,6 +27,7 @@ import java.security.SecureRandom
 import java.security.Security
 import java.security.cert.X509Certificate
 import java.util.Date
+import java.util.concurrent.ConcurrentHashMap
 
 object CertificateManager {
 
@@ -40,13 +41,15 @@ object CertificateManager {
     private const val CA_VALIDITY_YEARS = 10
     private const val LEAF_VALIDITY_YEARS = 1
     private const val SYSTEM_CERT_DIR = "/system/etc/security/cacerts"
+    // Android 14+ 系统CA证书迁移到 APEX 模块
+    private const val APEX_CERT_DIR = "/apex/com.android.conscrypt/cacerts"
 
     private val bcProvider = BouncyCastleProvider()
 
     private var caKeyPair: KeyPair? = null
     private var _caCertificate: X509Certificate? = null
     val caCertificate: X509Certificate? get() = _caCertificate
-    private val leafCertCache = mutableMapOf<String, Pair<KeyPair, X509Certificate>>()
+    private val leafCertCache = ConcurrentHashMap<String, Pair<KeyPair, X509Certificate>>()
 
     init {
         Security.addProvider(bcProvider)
@@ -219,7 +222,17 @@ object CertificateManager {
 
     fun isCaInstalledInSystem(context: Context): Boolean {
         val hash = getCertSubjectHashOld(context) ?: return false
-        return executeRootCommand("ls $SYSTEM_CERT_DIR/${hash}.0").first
+        // Android 14+ 优先检查 APEX 证书目录
+        val certDirs = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            listOf(APEX_CERT_DIR, SYSTEM_CERT_DIR)
+        } else {
+            listOf(SYSTEM_CERT_DIR)
+        }
+        for (dir in certDirs) {
+            val (success, _) = executeRootCommand("ls $dir/${hash}.0")
+            if (success) return true
+        }
+        return false
     }
 
     fun installCaToSystem(context: Context): Boolean {
@@ -230,54 +243,75 @@ object CertificateManager {
         }
 
         val hash = getCertSubjectHashOld(context) ?: return false
-        val targetPath = "$SYSTEM_CERT_DIR/${hash}.0"
 
-        // 方式1：临时挂载 /system 为可写（传统方式）
+        // Android 14+ 需要处理 APEX 证书目录
+        val isAndroid14Plus = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
+        // 方式1：临时挂载 /system 为可写（传统方式，Android 13-）
         val method1 = listOf(
             "mount -o rw,remount /system",
-            "cp '${caCertFile.absolutePath}' $targetPath",
-            "chmod 644 $targetPath",
+            "cp '${caCertFile.absolutePath}' $SYSTEM_CERT_DIR/${hash}.0",
+            "chmod 644 $SYSTEM_CERT_DIR/${hash}.0",
             "mount -o ro,remount /system"
         )
 
         // 方式2：临时挂载根分区（Android 14+系统分区可能不在/system）
         val method2 = listOf(
             "mount -o rw,remount /",
-            "cp '${caCertFile.absolutePath}' $targetPath",
-            "chmod 644 $targetPath",
+            "cp '${caCertFile.absolutePath}' $SYSTEM_CERT_DIR/${hash}.0",
+            "chmod 644 $SYSTEM_CERT_DIR/${hash}.0",
             "mount -o ro,remount /"
         )
 
-        // 方式3：使用 Magisk 模块方式（通过 bind mount 临时目录）
+        // 方式3：使用 tmpfs bind mount（兼容性最好）
         // 在 /data/local/tmp 创建临时证书目录，然后 bind mount 到系统证书目录
         val tmpDir = "/data/local/tmp/cacerts"
+        val certDir = if (isAndroid14Plus) APEX_CERT_DIR else SYSTEM_CERT_DIR
         val method3 = listOf(
             "mkdir -p $tmpDir",
-            "cp $SYSTEM_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "cp $certDir/* $tmpDir/ 2>/dev/null || true",
             "cp '${caCertFile.absolutePath}' $tmpDir/${hash}.0",
             "chmod 644 $tmpDir/${hash}.0",
-            "mount -t tmpfs tmpfs $SYSTEM_CERT_DIR",
-            "cp $tmpDir/* $SYSTEM_CERT_DIR/",
-            "chmod 644 $SYSTEM_CERT_DIR/*",
-            "chown root:root $SYSTEM_CERT_DIR/*",
+            "mount -t tmpfs tmpfs $certDir",
+            "cp $tmpDir/* $certDir/",
+            "chmod 644 $certDir/*",
+            "chown root:root $certDir/*",
             "rm -rf $tmpDir"
         )
 
+        // Android 14+ 额外方式：同时 bind mount 到传统路径
+        val method4 = if (isAndroid14Plus) listOf(
+            "mkdir -p $tmpDir",
+            // 先处理 APEX 目录
+            "cp $APEX_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "cp '${caCertFile.absolutePath}' $tmpDir/${hash}.0",
+            "chmod 644 $tmpDir/${hash}.0",
+            "mount -t tmpfs tmpfs $APEX_CERT_DIR",
+            "cp $tmpDir/* $APEX_CERT_DIR/",
+            "chmod 644 $APEX_CERT_DIR/*",
+            "chown root:root $APEX_CERT_DIR/*",
+            // 同时 bind mount 到传统路径（部分应用仍读取此路径）
+            "mkdir -p $SYSTEM_CERT_DIR",
+            "mount --bind $APEX_CERT_DIR $SYSTEM_CERT_DIR",
+            "rm -rf $tmpDir"
+        ) else emptyList()
+
         // 按顺序尝试各种方式
-        val methods = listOf(
-            "方式1(remount /system)" to method1,
-            "方式2(remount /)" to method2,
-            "方式3(tmpfs bind mount)" to method3
-        )
+        val methods = mutableListOf<Pair<String, List<String>>>()
+        if (isAndroid14Plus) {
+            methods.add("方式4(Android14+ APEX bind mount)" to method4)
+        }
+        methods.add("方式3(tmpfs bind mount)" to method3)
+        methods.add("方式1(remount /system)" to method1)
+        methods.add("方式2(remount /)" to method2)
 
         for ((name, commands) in methods) {
             AppLog.i(TAG, "尝试安装CA证书 - $name")
             val (success, output) = executeRootCommands(commands)
             if (success) {
-                // 验证证书是否真的安装成功
-                val verifyResult = executeRootCommand("ls $targetPath")
-                if (verifyResult.first) {
-                    AppLog.i(TAG, "CA 证书安装成功 ($name): $targetPath")
+                val verifyResult = isCaInstalledInSystem(context)
+                if (verifyResult) {
+                    AppLog.i(TAG, "CA 证书安装成功 ($name)")
                     return true
                 } else {
                     AppLog.w(TAG, "$name 命令成功但证书未就位，尝试下一种方式")
@@ -293,40 +327,56 @@ object CertificateManager {
 
     fun uninstallCaFromSystem(context: Context): Boolean {
         val hash = getCertSubjectHashOld(context) ?: return false
-        val targetPath = "$SYSTEM_CERT_DIR/${hash}.0"
+
+        val isAndroid14Plus = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE
 
         // 方式1：传统remount
         val method1 = listOf(
             "mount -o rw,remount /system",
-            "rm -f $targetPath",
+            "rm -f $SYSTEM_CERT_DIR/${hash}.0",
             "mount -o ro,remount /system"
         )
 
         // 方式2：remount根分区
         val method2 = listOf(
             "mount -o rw,remount /",
-            "rm -f $targetPath",
+            "rm -f $SYSTEM_CERT_DIR/${hash}.0",
             "mount -o ro,remount /"
         )
 
         // 方式3：tmpfs bind mount方式卸载
         val tmpDir = "/data/local/tmp/cacerts"
+        val certDir = if (isAndroid14Plus) APEX_CERT_DIR else SYSTEM_CERT_DIR
         val method3 = listOf(
             "mkdir -p $tmpDir",
-            "cp $SYSTEM_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "cp $certDir/* $tmpDir/ 2>/dev/null || true",
             "rm -f $tmpDir/${hash}.0",
-            "mount -t tmpfs tmpfs $SYSTEM_CERT_DIR",
-            "cp $tmpDir/* $SYSTEM_CERT_DIR/ 2>/dev/null || true",
-            "chmod 644 $SYSTEM_CERT_DIR/* 2>/dev/null || true",
-            "chown root:root $SYSTEM_CERT_DIR/* 2>/dev/null || true",
+            "mount -t tmpfs tmpfs $certDir",
+            "cp $tmpDir/* $certDir/ 2>/dev/null || true",
+            "chmod 644 $certDir/* 2>/dev/null || true",
+            "chown root:root $certDir/* 2>/dev/null || true",
             "rm -rf $tmpDir"
         )
 
-        val methods = listOf(
-            "方式1(remount /system)" to method1,
-            "方式2(remount /)" to method2,
-            "方式3(tmpfs bind mount)" to method3
-        )
+        // Android 14+ 同时处理 APEX 和传统路径
+        val method4 = if (isAndroid14Plus) listOf(
+            "mkdir -p $tmpDir",
+            "cp $APEX_CERT_DIR/* $tmpDir/ 2>/dev/null || true",
+            "rm -f $tmpDir/${hash}.0",
+            "mount -t tmpfs tmpfs $APEX_CERT_DIR",
+            "cp $tmpDir/* $APEX_CERT_DIR/ 2>/dev/null || true",
+            "chmod 644 $APEX_CERT_DIR/* 2>/dev/null || true",
+            "chown root:root $APEX_CERT_DIR/* 2>/dev/null || true",
+            "rm -rf $tmpDir"
+        ) else emptyList()
+
+        val methods = mutableListOf<Pair<String, List<String>>>()
+        if (isAndroid14Plus) {
+            methods.add("方式4(Android14+ APEX)" to method4)
+        }
+        methods.add("方式3(tmpfs bind mount)" to method3)
+        methods.add("方式1(remount /system)" to method1)
+        methods.add("方式2(remount /)" to method2)
 
         for ((name, commands) in methods) {
             AppLog.i(TAG, "尝试卸载CA证书 - $name")
@@ -357,8 +407,17 @@ object CertificateManager {
     }
 
     private fun executeRootCommands(commands: List<String>): Pair<Boolean, String> {
-        val combinedCommand = commands.joinToString(" && ")
-        return executeRootCommand(combinedCommand)
+        // 逐条执行，避免 && 与 || true 优先级冲突
+        val sb = StringBuilder()
+        var allSuccess = true
+        for (command in commands) {
+            val (success, output) = executeRootCommand(command)
+            if (!success && !command.contains("|| true") && !command.contains("2>/dev/null")) {
+                allSuccess = false
+                sb.append("FAIL: $command → $output\n")
+            }
+        }
+        return allSuccess to sb.toString()
     }
 
     private fun getCertDir(context: Context): File {

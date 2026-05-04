@@ -1,4 +1,4 @@
-﻿package com.swupdater.network
+package com.swupdater.network
 
 import com.swupdater.model.DownloadProgress
 import com.swupdater.model.DownloadState

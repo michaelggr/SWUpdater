@@ -1,4 +1,4 @@
-﻿package com.swupdater.capture.handler
+package com.swupdater.capture.handler
 
 import com.swupdater.capture.GameCommandHandler
 

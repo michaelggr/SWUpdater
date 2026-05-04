@@ -1,4 +1,4 @@
-﻿package com.swupdater.network
+package com.swupdater.network
 
 import android.content.Context
 import android.util.Log

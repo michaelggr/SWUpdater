@@ -34,7 +34,7 @@ object AppLog {
     private var logModeEnabled = false
 
     private val buffer = mutableListOf<LogEntry>()
-    private val listeners = mutableListOf<(LogEntry) -> Unit>()
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<(LogEntry) -> Unit>()
 
     data class LogEntry(
         val timestamp: Long,
