@@ -25,53 +25,59 @@ class SplashActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashBinding
 
-    // 用于请求安装未知应用权限
+    @Volatile
+    private var isNavigating = false
+
+    @Volatile
+    private var isRequestingPermissions = false
+
     private val installPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // 继续下一个权限请求
-        requestOverlayPermission()
+        if (isNavigating) return@registerForActivityResult
+        updatePermissionStatus()
+        continuePermissionChain()
     }
 
-    // 用于请求悬浮窗权限
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
+        if (isNavigating) return@registerForActivityResult
         if (Settings.canDrawOverlays(this)) {
             AppLog.i(TAG, "悬浮窗权限获取成功")
         }
-        // 继续请求存储权限
-        requestStoragePermission()
+        updatePermissionStatus()
+        continuePermissionChain()
     }
 
-    // 用于请求存储权限（Android 11+ MANAGE_EXTERNAL_STORAGE）
     private val storagePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
+        if (isNavigating) return@registerForActivityResult
         if (WallpaperManager.hasStoragePermission(this)) {
             AppLog.i(TAG, "存储权限获取成功")
         }
-        // 继续请求通知权限
-        requestNotificationPermission()
+        updatePermissionStatus()
+        continuePermissionChain()
     }
 
-    // 用于请求通知权限（Android 13+）
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        if (isNavigating) return@registerForActivityResult
         if (granted) {
             AppLog.i(TAG, "通知权限获取成功")
         }
-        // 继续请求电池优化白名单
-        requestBatteryOptimization()
+        updatePermissionStatus()
+        continuePermissionChain()
     }
 
-    // 用于请求电池优化白名单
     private val batteryPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // 所有权限请求完成，进入主页
-        onAllEssentialPermissionsGranted()
+        if (isNavigating) return@registerForActivityResult
+        updatePermissionStatus()
+        continuePermissionChain()
     }
 
     companion object {
@@ -81,16 +87,13 @@ class SplashActivity : AppCompatActivity() {
         private const val KEY_FIRST_LAUNCH = "first_launch"
     }
 
-    @Volatile
-    private var isNavigating = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         com.swupdater.util.ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
 
-        // 检查是否是首次安装，或者是否需要权限引导
         if (!isFirstLaunch() && areAllEssentialPermissionsGranted()) {
-            skipToMain()
+            isNavigating = true
+            navigateToMain()
             return
         }
 
@@ -103,6 +106,18 @@ class SplashActivity : AppCompatActivity() {
 
         if (isRootUser()) {
             binding.tvRootHint.visibility = View.VISIBLE
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isNavigating) return
+        if (isRequestingPermissions) return
+
+        updatePermissionStatus()
+
+        if (areAllEssentialPermissionsGranted()) {
+            onAllEssentialPermissionsGranted()
         }
     }
 
@@ -143,10 +158,9 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 更新权限状态显示
-     */
     private fun updatePermissionStatus() {
+        if (isNavigating) return
+
         val storageGranted = WallpaperManager.hasStoragePermission(this)
         val overlayGranted = Settings.canDrawOverlays(this)
         val installGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -183,9 +197,6 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 显示权限说明对话框
-     */
     private fun showPermissionExplainDialog() {
         val message = HtmlCompat.fromHtml("""
             <b>${getString(R.string.permission_storage)}</b><br/>
@@ -211,22 +222,61 @@ class SplashActivity : AppCompatActivity() {
             .show()
     }
 
-    /**
-     * 逐步请求权限
-     */
     private fun requestPermissionsStepByStep() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!packageManager.canRequestPackageInstalls()) {
-                requestInstallPermission()
+        isRequestingPermissions = true
+        continuePermissionChain()
+    }
+
+    private fun continuePermissionChain() {
+        if (isNavigating) return
+
+        if (areAllEssentialPermissionsGranted()) {
+            isRequestingPermissions = false
+            onAllEssentialPermissionsGranted()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
+            requestInstallPermission()
+            return
+        }
+
+        if (!Settings.canDrawOverlays(this)) {
+            requestOverlayPermission()
+            return
+        }
+
+        if (!WallpaperManager.hasStoragePermission(this)) {
+            val intent = WallpaperManager.getStoragePermissionIntent(this)
+            if (intent != null) {
+                try {
+                    storagePermissionLauncher.launch(intent)
+                    return
+                } catch (e: Exception) {
+                    AppLog.e(TAG, "请求存储权限失败", e)
+                }
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermission()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                requestBatteryOptimization()
                 return
             }
         }
-        requestOverlayPermission()
+
+        isRequestingPermissions = false
+        onAllEssentialPermissionsGranted()
     }
 
-    /**
-     * 请求安装未知应用权限
-     */
     private fun requestInstallPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
@@ -236,58 +286,38 @@ class SplashActivity : AppCompatActivity() {
                 installPermissionLauncher.launch(intent)
             } catch (e: Exception) {
                 AppLog.e(TAG, "请求安装权限失败", e)
-                requestOverlayPermission()
+                continuePermissionChain()
             }
         } else {
-            requestOverlayPermission()
+            continuePermissionChain()
         }
     }
 
-    /**
-     * 请求悬浮窗权限
-     */
     private fun requestOverlayPermission() {
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                data = android.net.Uri.parse("package:$packageName")
-            }
-            try {
-                overlayPermissionLauncher.launch(intent)
-            } catch (e: Exception) {
-                AppLog.e(TAG, "请求悬浮窗权限失败", e)
-                requestStoragePermission()
-            }
-        } else {
-            requestStoragePermission()
+        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+            data = android.net.Uri.parse("package:$packageName")
+        }
+        try {
+            overlayPermissionLauncher.launch(intent)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "请求悬浮窗权限失败", e)
+            continuePermissionChain()
         }
     }
 
-    /**
-     * 请求存储权限（MANAGE_EXTERNAL_STORAGE）
-     */
-    private fun requestStoragePermission() {
-        val intent = WallpaperManager.getStoragePermissionIntent(this)
-        if (intent != null) {
-            storagePermissionLauncher.launch(intent)
-        } else {
-            requestNotificationPermission()
-        }
-    }
-
-    /**
-     * 请求通知权限
-     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            try {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } catch (e: Exception) {
+                AppLog.e(TAG, "请求通知权限失败", e)
+                continuePermissionChain()
+            }
         } else {
-            requestBatteryOptimization()
+            continuePermissionChain()
         }
     }
 
-    /**
-     * 请求电池优化白名单
-     */
     private fun requestBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -303,58 +333,21 @@ class SplashActivity : AppCompatActivity() {
                 }
             }
         }
-        onAllEssentialPermissionsGranted()
+        continuePermissionChain()
     }
 
-    /**
-     * 所有必要权限获取完成
-     */
     private fun onAllEssentialPermissionsGranted() {
         if (isNavigating) return
         isNavigating = true
+        isRequestingPermissions = false
         AppLog.i(TAG, "所有必要权限已获取，准备进入主页")
-        binding.tvStatus.text = getString(R.string.permission_ready)
+        try {
+            binding.tvStatus.text = getString(R.string.permission_ready)
+        } catch (_: Exception) {}
         markFirstLaunchComplete()
-        skipToMain()
+        navigateToMain()
     }
 
-    /**
-     * 显示存储权限被拒绝的提示
-     */
-    private fun showStorageDeniedDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.permission_storage_denied_title)
-            .setMessage(R.string.permission_storage_denied_message)
-            .setPositiveButton(R.string.continue_btn) { _, _ ->
-                onAllEssentialPermissionsGranted()
-            }
-            .setNegativeButton(R.string.retry) { _, _ ->
-                requestStoragePermission()
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-    /**
-     * 显示悬浮窗权限被拒绝的提示
-     */
-    private fun showOverlayDeniedDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.permission_overlay_denied_title)
-            .setMessage(R.string.permission_overlay_denied_message)
-            .setPositiveButton(R.string.continue_btn) { _, _ ->
-                requestStoragePermission()
-            }
-            .setNegativeButton(R.string.retry) { _, _ ->
-                requestOverlayPermission()
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-    /**
-     * 显示确认跳过权限请求的对话框
-     */
     private fun showSkipConfirmDialog() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.permission_skip_title)
@@ -366,22 +359,22 @@ class SplashActivity : AppCompatActivity() {
             .show()
     }
 
-    /**
-     * 跳过权限请求，直接进入主页
-     */
     private fun skipToMain() {
         if (isNavigating) return
         isNavigating = true
+        isRequestingPermissions = false
         markFirstLaunchComplete()
+        navigateToMain()
+    }
+
+    private fun navigateToMain() {
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(EXTRA_FROM_SPLASH, true)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()
     }
 
-    /**
-     * 检查是否是 Root 用户
-     */
     private fun isRootUser(): Boolean {
         return try {
             val process = Runtime.getRuntime().exec("su -c id")
@@ -391,20 +384,6 @@ class SplashActivity : AppCompatActivity() {
             output?.contains("uid=0") == true
         } catch (e: Exception) {
             false
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (isNavigating) return
-
-        updatePermissionStatus()
-
-        if (areAllEssentialPermissionsGranted()) {
-            if (binding.btnRequestPermission.text != getString(R.string.permissions_all_granted)) {
-                binding.tvStatus.text = getString(R.string.permission_ready)
-                onAllEssentialPermissionsGranted()
-            }
         }
     }
 }
