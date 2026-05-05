@@ -129,12 +129,7 @@ class KeepAliveService : Service() {
         AppLog.section(TAG, "保活服务创建")
 
         createNotificationChannel()
-        // Android 14+ 必须指定前台服务类型
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(NOTIFICATION_ID, buildNotification())
-        }
+        startForegroundCompat()
         acquireWakeLock()
         startHeartbeat()
 
@@ -146,13 +141,7 @@ class KeepAliveService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         AppLog.i(TAG, "保活服务 onStartCommand")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-            } else {
-                startForeground(NOTIFICATION_ID, buildNotification())
-            }
-        }
+        startForegroundCompat()
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         val autoCheck = prefs.getBoolean(BootReceiver.PREF_AUTO_CHECK, true)
@@ -186,6 +175,18 @@ class KeepAliveService : Service() {
             } catch (e: Exception) {
                 AppLog.e(TAG, "重启服务失败: ${e.message}")
             }
+        }
+    }
+
+    private fun startForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForeground(NOTIFICATION_ID, buildNotification())
         }
     }
 
