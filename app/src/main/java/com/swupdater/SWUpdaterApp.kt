@@ -6,6 +6,12 @@ import com.swupdater.receiver.BootReceiver
 import com.swupdater.service.KeepAliveService
 import com.swupdater.service.VersionCheckWorker
 import com.swupdater.util.AppLog
+import java.io.File
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SWUpdaterApp : Application() {
 
@@ -14,11 +20,13 @@ class SWUpdaterApp : Application() {
     }
 
     override fun onCreate() {
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(Thread.getDefaultUncaughtExceptionHandler()))
+
         super.onCreate()
 
         AppLog.init(this)
 
-        AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.6.0")
+        AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.6.2")
 
         initAutoCheck()
 
@@ -42,6 +50,30 @@ class SWUpdaterApp : Application() {
         } else {
             VersionCheckWorker.cancelPeriodicCheck(this)
             AppLog.i(TAG, "自动检查已禁用")
+        }
+    }
+
+    private inner class CrashHandler(private val defaultHandler: Thread.UncaughtExceptionHandler?) :
+        Thread.UncaughtExceptionHandler {
+
+        override fun uncaughtException(thread: Thread, throwable: Throwable) {
+            try {
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                throwable.printStackTrace(pw)
+                pw.close()
+                val stackTrace = sw.toString()
+
+                android.util.Log.e("CrashHandler", "未捕获异常", throwable)
+
+                val dir = File(filesDir, "crash")
+                if (!dir.exists()) dir.mkdirs()
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val crashFile = File(dir, "crash_$timestamp.log")
+                crashFile.writeText("Time: ${Date()}\nThread: ${thread.name}\n\n$stackTrace")
+            } catch (_: Exception) {}
+
+            defaultHandler?.uncaughtException(thread, throwable)
         }
     }
 }

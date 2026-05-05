@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import android.content.Intent
@@ -247,11 +247,9 @@ object WallpaperManager {
             return dir
         }
         val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+: 应用专属目录，无需存储权限
-            File(
-                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-                "SWUpdater/wallpapers"
-            )
+            val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: context.filesDir
+            File(baseDir, "SWUpdater/wallpapers")
         } else {
             // Android 9-: 公共 Download 目录
             @Suppress("DEPRECATION")

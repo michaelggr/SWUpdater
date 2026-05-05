@@ -395,6 +395,7 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                             // 降级：直接使用应用专属目录
                             val baseDir = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                                 context?.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                                    ?: context?.filesDir
                             } else {
                                 @Suppress("DEPRECATION")
                                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)

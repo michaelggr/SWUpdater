@@ -36,6 +36,10 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MainViewModel
 
@@ -85,23 +89,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        ThemeManager.applyTheme(this)
+        try {
+            ThemeManager.applyTheme(this)
+        } catch (e: Exception) {
+            setTheme(R.style.Theme_SWUpdater_Game)
+        }
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         viewModel = MainViewModel(this.application)
 
-        setupToolbar()
-        setupSwipeRefresh()
-        setupButtons()
-        setupWallpaper()
-        setupCapture()
-        setupFooterButtons()
-        observeViewModel()
+        try { setupToolbar() } catch (e: Exception) { AppLog.e(TAG, "setupToolbar失败", e) }
+        try { setupSwipeRefresh() } catch (e: Exception) { AppLog.e(TAG, "setupSwipeRefresh失败", e) }
+        try { setupButtons() } catch (e: Exception) { AppLog.e(TAG, "setupButtons失败", e) }
+        try { setupWallpaper() } catch (e: Exception) { AppLog.e(TAG, "setupWallpaper失败", e) }
+        try { setupCapture() } catch (e: Exception) { AppLog.e(TAG, "setupCapture失败", e) }
+        try { setupFooterButtons() } catch (e: Exception) { AppLog.e(TAG, "setupFooterButtons失败", e) }
+        try { observeViewModel() } catch (e: Exception) { AppLog.e(TAG, "observeViewModel失败", e) }
 
-        checkAndRequestPermissions()
-        loadWallpaperOnStart()
+        try { checkAndRequestPermissions() } catch (e: Exception) { AppLog.e(TAG, "checkAndRequestPermissions失败", e) }
+        try { loadWallpaperOnStart() } catch (e: Exception) { AppLog.e(TAG, "loadWallpaperOnStart失败", e) }
     }
 
     // ========== 壁纸功能 ==========

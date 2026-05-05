@@ -143,17 +143,11 @@ object CaptureRepository {
     }
 
     private object FileUtil {
-        /**
-         * 获取抓取数据基础目录
-         * Android 10+: 应用专属外部存储（无需权限）
-         * Android 9-: 公共 Download 目录
-         */
         fun getCaptureBaseDir(context: Context): File {
             return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                val dir = java.io.File(
-                    context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS),
-                    "SWUpdater"
-                )
+                val baseDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                    ?: context.filesDir
+                val dir = java.io.File(baseDir, "SWUpdater")
                 if (!dir.exists()) dir.mkdirs()
                 dir
             } else {

@@ -370,7 +370,6 @@ class SplashActivity : AppCompatActivity() {
     private fun navigateToMain() {
         val intent = Intent(this, MainActivity::class.java)
         intent.putExtra(EXTRA_FROM_SPLASH, true)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()
     }

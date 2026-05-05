@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.content.Context
 import androidx.preference.PreferenceManager
@@ -233,6 +233,8 @@ object AppLog {
     }
 
     fun getLogFile(context: Context): File {
-        return File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS), LOG_FILE_NAME)
+        val externalDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS)
+            ?: context.filesDir
+        return File(externalDir, LOG_FILE_NAME)
     }
 }

@@ -20,13 +20,10 @@ object FileUtil {
      */
     fun getDownloadDir(context: Context): File {
         val dir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+: 应用专属目录，无需存储权限
-            File(
-                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-                "SWUpdater/updates"
-            )
+            val baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: context.filesDir
+            File(baseDir, "SWUpdater/updates")
         } else {
-            // Android 9-: 公共 Download 目录
             @Suppress("DEPRECATION")
             File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
