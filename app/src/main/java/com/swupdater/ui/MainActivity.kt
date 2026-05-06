@@ -95,10 +95,27 @@ class MainActivity : AppCompatActivity() {
             setTheme(R.style.Theme_SWUpdater_Game)
         }
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "初始化布局失败", e)
+            // 如果布局加载失败，至少显示一个简单的界面
+            try {
+                val textView = android.widget.TextView(this)
+                textView.text = "应用启动失败，请重新安装"
+                textView.gravity = android.view.Gravity.CENTER
+                setContentView(textView)
+            } catch (_: Exception) {}
+            return
+        }
 
-        viewModel = MainViewModel(this.application)
+        try {
+            viewModel = MainViewModel(this.application)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "初始化ViewModel失败", e)
+        }
 
         try { setupToolbar() } catch (e: Exception) { AppLog.e(TAG, "setupToolbar失败", e) }
         try { setupSwipeRefresh() } catch (e: Exception) { AppLog.e(TAG, "setupSwipeRefresh失败", e) }
@@ -108,8 +125,11 @@ class MainActivity : AppCompatActivity() {
         try { setupFooterButtons() } catch (e: Exception) { AppLog.e(TAG, "setupFooterButtons失败", e) }
         try { observeViewModel() } catch (e: Exception) { AppLog.e(TAG, "observeViewModel失败", e) }
 
-        try { checkAndRequestPermissions() } catch (e: Exception) { AppLog.e(TAG, "checkAndRequestPermissions失败", e) }
-        try { loadWallpaperOnStart() } catch (e: Exception) { AppLog.e(TAG, "loadWallpaperOnStart失败", e) }
+        // 延迟执行可能导致崩溃的操作
+        binding.root.postDelayed({
+            try { checkAndRequestPermissions() } catch (e: Exception) { AppLog.e(TAG, "checkAndRequestPermissions失败", e) }
+            try { loadWallpaperOnStart() } catch (e: Exception) { AppLog.e(TAG, "loadWallpaperOnStart失败", e) }
+        }, 300)
     }
 
     // ========== 壁纸功能 ==========

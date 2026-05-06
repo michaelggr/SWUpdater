@@ -344,8 +344,18 @@ class SplashActivity : AppCompatActivity() {
         try {
             binding.tvStatus.text = getString(R.string.permission_ready)
         } catch (_: Exception) {}
-        markFirstLaunchComplete()
-        navigateToMain()
+        try {
+            markFirstLaunchComplete()
+        } catch (_: Exception) {}
+        try {
+            navigateToMain()
+        } catch (e: Exception) {
+            AppLog.e(TAG, "导航到主页失败", e)
+            // 如果导航失败，尝试直接finish让系统处理
+            try {
+                finish()
+            } catch (_: Exception) {}
+        }
     }
 
     private fun showSkipConfirmDialog() {
