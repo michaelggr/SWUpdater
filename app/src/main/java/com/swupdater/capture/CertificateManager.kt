@@ -2,6 +2,7 @@
 
 import android.content.Context
 import com.swupdater.util.AppLog
+import com.swupdater.util.RootCommandUtil
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.BasicConstraints
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage
@@ -229,7 +230,7 @@ object CertificateManager {
             listOf(SYSTEM_CERT_DIR)
         }
         for (dir in certDirs) {
-            val (success, _) = executeRootCommand("ls $dir/${hash}.0")
+            val (success, _) = RootCommandUtil.executeRootCommand("ls $dir/${hash}.0")
             if (success) return true
         }
         return false
@@ -307,7 +308,7 @@ object CertificateManager {
 
         for ((name, commands) in methods) {
             AppLog.i(TAG, "尝试安装CA证书 - $name")
-            val (success, output) = executeRootCommands(commands)
+            val (success, output) = RootCommandUtil.executeRootCommands(commands)
             if (success) {
                 val verifyResult = isCaInstalledInSystem(context)
                 if (verifyResult) {
@@ -380,7 +381,7 @@ object CertificateManager {
 
         for ((name, commands) in methods) {
             AppLog.i(TAG, "尝试卸载CA证书 - $name")
-            val (success, output) = executeRootCommands(commands)
+            val (success, output) = RootCommandUtil.executeRootCommands(commands)
             if (success) {
                 AppLog.i(TAG, "CA 证书卸载成功 ($name)")
                 return true
@@ -391,33 +392,6 @@ object CertificateManager {
 
         AppLog.e(TAG, "所有CA证书卸载方式均失败")
         return false
-    }
-
-    private fun executeRootCommand(command: String): Pair<Boolean, String> {
-        return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val output = process.inputStream.bufferedReader().readText().trim()
-            val error = process.errorStream.bufferedReader().readText().trim()
-            val exitCode = process.waitFor()
-            val result = if (exitCode == 0) output else error
-            (exitCode == 0) to result
-        } catch (e: Exception) {
-            false to (e.message ?: "执行失败")
-        }
-    }
-
-    private fun executeRootCommands(commands: List<String>): Pair<Boolean, String> {
-        // 逐条执行，避免 && 与 || true 优先级冲突
-        val sb = StringBuilder()
-        var allSuccess = true
-        for (command in commands) {
-            val (success, output) = executeRootCommand(command)
-            if (!success && !command.contains("|| true") && !command.contains("2>/dev/null")) {
-                allSuccess = false
-                sb.append("FAIL: $command → $output\n")
-            }
-        }
-        return allSuccess to sb.toString()
     }
 
     private fun getCertDir(context: Context): File {

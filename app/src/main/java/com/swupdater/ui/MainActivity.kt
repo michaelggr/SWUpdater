@@ -365,6 +365,7 @@ class MainActivity : AppCompatActivity() {
                         arrayOf("su", "-c", "am start -n $packageName/com.com2us.smon.normal.freefull.google.kr.android.common.ActivityMain")
                     )
                     process.waitFor()
+                    process.destroy()
                     SnackbarHelper.info(binding.root, "游戏已通过Root启动").show()
                     AppLog.i("MainActivity", "游戏已通过Root启动: $packageName")
                 } catch (e: Exception) {
@@ -453,10 +454,20 @@ class MainActivity : AppCompatActivity() {
     /**
      * 显示壁纸缩略图到卡片内
      */
+    private var currentWallpaperBitmap: Bitmap? = null
+
     private fun showWallpaperBitmap(bitmap: Bitmap) {
+        currentWallpaperBitmap?.recycle()
+        currentWallpaperBitmap = bitmap
         binding.ivWallpaper.setImageBitmap(bitmap)
         binding.ivWallpaper.visibility = View.VISIBLE
         binding.tvNoWallpaper.visibility = View.GONE
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        currentWallpaperBitmap?.recycle()
+        currentWallpaperBitmap = null
     }
 
     private fun applyWallpaperToSystem() {

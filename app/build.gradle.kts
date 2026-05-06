@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -6,8 +6,8 @@ plugins {
 // ========== 版本号（支持 CI 参数注入） ==========
 // CI 环境通过 -PversionName=x.x.x -PversionCode=xxx 注入
 // 本地开发使用 gradle.properties 中的默认值
-val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "2.6.0" }
-val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 26000
+val versionNameProp = (project.findProperty("versionName") as? String).orEmpty().ifEmpty { "2.7.0" }
+val versionCodeProp = (project.findProperty("versionCode") as? String)?.toIntOrNull() ?: 27000
 
 android {
     namespace = "com.swupdater"

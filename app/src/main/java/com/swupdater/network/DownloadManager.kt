@@ -1,4 +1,4 @@
-package com.swupdater.network
+﻿package com.swupdater.network
 
 import com.swupdater.model.DownloadProgress
 import com.swupdater.model.DownloadState
@@ -10,8 +10,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
-import java.net.Inet4Address
-import java.net.InetAddress
 import java.util.concurrent.TimeUnit
 
 object DownloadManager {
@@ -20,25 +18,20 @@ object DownloadManager {
     private const val BUFFER_SIZE = 8192
     private const val SPEED_SAMPLE_INTERVAL = 1000L
 
-    internal val _progress = MutableStateFlow(DownloadProgress())
+    private val _progress = MutableStateFlow(DownloadProgress())
     val progress: StateFlow<DownloadProgress> = _progress
 
-    private var downloadJob: Job? = null
-    private var isCancelled = false
-
-    private class Ipv4PreferredDns : okhttp3.Dns {
-        override fun lookup(hostname: String): List<InetAddress> {
-            val addresses = okhttp3.Dns.SYSTEM.lookup(hostname)
-            val ipv4 = addresses.filter { it is Inet4Address }
-            val result = if (ipv4.isNotEmpty()) ipv4 else addresses
-            AppLog.d(TAG, "DNS $hostname -> ${result.map { it.hostAddress }}")
-            return result
-        }
+    fun updateProgress(value: DownloadProgress) {
+        _progress.value = value
     }
+
+    private var downloadJob: Job? = null
+    @Volatile
+    private var isCancelled = false
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .dns(Ipv4PreferredDns())
+            .dns(NetworkUtil.Ipv4PreferredDns())
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .followRedirects(true)
@@ -66,13 +59,7 @@ object DownloadManager {
         AppLog.w(TAG, "下载任务已取消")
     }
 
-    private fun normalizeUrl(url: String): String {
-        return if (url.contains("dn.qpyou.cn")) {
-            url.replace("https://", "http://")
-        } else {
-            url
-        }
-    }
+    private fun normalizeUrl(url: String): String = NetworkUtil.normalizeUrl(url)
 
     private suspend fun downloadFile(url: String, targetFile: File) {
         try {

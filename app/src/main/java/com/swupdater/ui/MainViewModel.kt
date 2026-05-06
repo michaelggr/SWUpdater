@@ -246,9 +246,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             AppLog.section(TAG, "文件校验")
             AppLog.i(TAG, "文件: ${file.name}, 大小: ${FileUtil.formatFileSize(file.length())}")
-            DownloadManager._progress.value = DownloadManager.progress.value.copy(
+            DownloadManager.updateProgress(DownloadManager.progress.value.copy(
                 state = DownloadState.VERIFYING
-            )
+            ))
 
             val latest = _latestVersion.value
             var isVerified: Boolean
@@ -276,9 +276,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             val finalState = if (isVerified) DownloadState.VERIFIED else DownloadState.VERIFY_FAILED
             AppLog.i(TAG, "校验结果: ${if (isVerified) "✓ 全部通过" else "✗ 校验失败"}")
-            DownloadManager._progress.value = DownloadManager.progress.value.copy(
+            DownloadManager.updateProgress(DownloadManager.progress.value.copy(
                 state = finalState
-            )
+            ))
         }
     }
 
@@ -304,7 +304,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         if (rootAutoInstall && isRooted) {
             AppLog.section(TAG, "Root 静默安装")
-            DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
+            DownloadManager.updateProgress(progress.copy(state = DownloadState.INSTALLING))
             viewModelScope.launch {
                 val result = com.swupdater.util.RootInstallHelper.installSilently(filePath)
                 if (result.success) {
@@ -352,7 +352,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             context.startActivity(intent)
             val progress = DownloadManager.progress.value
-            DownloadManager._progress.value = progress.copy(state = DownloadState.INSTALLING)
+            DownloadManager.updateProgress(progress.copy(state = DownloadState.INSTALLING))
             AppLog.i(TAG, "系统安装器已启动")
             true
         } catch (e: Exception) {

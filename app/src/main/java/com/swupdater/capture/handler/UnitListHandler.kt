@@ -20,7 +20,7 @@ class UnitListHandler : GameCommandHandler {
     @Suppress("UNCHECKED_CAST")
     private fun parseUnit(unit: Map<String, Any?>): Map<String, Any?> {
         val runes = (unit["runes"] as? List<*>)?.mapNotNull { rune ->
-            (rune as? Map<String, Any?>)?.let { parseRune(it) }
+            (rune as? Map<String, Any?>)?.let { RuneParser.parseRune(it) }
         } ?: emptyList()
 
         return mapOf(
@@ -38,20 +38,6 @@ class UnitListHandler : GameCommandHandler {
             "accuracy" to unit["accuracy"],
             "skills" to unit["skills"],
             "runes" to runes
-        )
-    }
-
-    private fun parseRune(rune: Map<String, Any?>): Map<String, Any?> {
-        return mapOf(
-            "runeId" to rune["rune_id"],
-            "masterId" to rune["rune_master_id"],
-            "slot" to rune["slot_no"],
-            "grade" to rune["class"],
-            "level" to rune["upgrade"],
-            "set" to rune["set_id"],
-            "priEff" to rune["pri_eff"],
-            "prefixEff" to rune["prefix_eff"],
-            "secEff" to rune["sec_eff"]
         )
     }
 }

@@ -88,7 +88,7 @@ class CaptureService : Service() {
     private var parser: GameDataParser? = null
     private var captureJob: Job? = null
 
-    private val capturedData = mutableMapOf<String, Any?>()
+    private val capturedData = java.util.concurrent.ConcurrentHashMap<String, Any?>()
     @Volatile
     private var hasGameData = false
 

@@ -1,4 +1,4 @@
-package com.swupdater.util
+﻿package com.swupdater.util
 
 import android.os.Build
 import java.io.BufferedReader
@@ -10,13 +10,13 @@ object RootInstallHelper {
     private const val TAG = "RootInstall"
 
     fun isDeviceRooted(): Boolean {
-        // 方式1：尝试执行 su 命令（比 which 更可靠）
         try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             val output = reader.readLine()
             reader.close()
             process.waitFor()
+            process.destroy()
             if (output?.contains("uid=0") == true) {
                 AppLog.i(TAG, "Root 检测: su 可执行 → $output")
                 return true

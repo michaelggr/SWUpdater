@@ -1,6 +1,7 @@
 ﻿package com.swupdater.capture
 
 import com.swupdater.util.AppLog
+import com.swupdater.util.RootCommandUtil
 
 object IptablesManager {
 
@@ -50,7 +51,7 @@ object IptablesManager {
         }
         commands.add("ip6tables -t nat -A OUTPUT -p tcp -j $ip6ChainName")
 
-        val (success, output) = executeRootCommands(commands)
+        val (success, output) = RootCommandUtil.executeRootCommands(commands)
         if (success) {
             rulesApplied = true
             AppLog.i(TAG, "iptables/ip6tables 规则设置成功")
@@ -76,7 +77,7 @@ object IptablesManager {
             "ip6tables -t nat -X $ip6ChainName 2>/dev/null || true"
         )
 
-        val (success, output) = executeRootCommands(commands)
+        val (success, output) = RootCommandUtil.executeRootCommands(commands)
         if (success) {
             rulesApplied = false
             AppLog.i(TAG, "iptables/ip6tables 规则清理成功")
@@ -94,7 +95,7 @@ object IptablesManager {
         )
 
         for (pkg in gamePackages) {
-            val (success, output) = executeRootCommand("dumpsys package $pkg | grep userId=")
+            val (success, output) = RootCommandUtil.executeRootCommand("dumpsys package $pkg | grep userId=")
             if (success && output.contains("userId=")) {
                 val uid = output.substringAfter("userId=").trim().substringBefore(" ").toIntOrNull()
                 if (uid != null) {
@@ -109,32 +110,4 @@ object IptablesManager {
     }
 
     fun isRulesApplied(): Boolean = rulesApplied
-
-    private fun executeRootCommand(command: String): Pair<Boolean, String> {
-        return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val output = process.inputStream.bufferedReader().readText().trim()
-            val error = process.errorStream.bufferedReader().readText().trim()
-            val exitCode = process.waitFor()
-            val result = if (exitCode == 0) output else error
-            (exitCode == 0) to result
-        } catch (e: Exception) {
-            false to (e.message ?: "执行失败")
-        }
-    }
-
-    private fun executeRootCommands(commands: List<String>): Pair<Boolean, String> {
-        // 逐条执行，每条命令独立判断成功与否
-        // 不用 && 连接，因为部分命令含 || true 会导致优先级混乱
-        val sb = StringBuilder()
-        var allSuccess = true
-        for (command in commands) {
-            val (success, output) = executeRootCommand(command)
-            if (!success && !command.contains("|| true")) {
-                allSuccess = false
-                sb.append("FAIL: $command → $output\n")
-            }
-        }
-        return allSuccess to sb.toString()
-    }
 }
