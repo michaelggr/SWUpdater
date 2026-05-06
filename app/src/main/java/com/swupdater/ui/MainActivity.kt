@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by viewModels()
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -109,12 +110,6 @@ class MainActivity : AppCompatActivity() {
                 setContentView(textView)
             } catch (_: Exception) {}
             return
-        }
-
-        try {
-            viewModel = MainViewModel(this.application)
-        } catch (e: Exception) {
-            AppLog.e(TAG, "初始化ViewModel失败", e)
         }
 
         try { setupToolbar() } catch (e: Exception) { AppLog.e(TAG, "setupToolbar失败", e) }
