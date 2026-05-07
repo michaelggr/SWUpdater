@@ -26,7 +26,7 @@ class SWUpdaterApp : Application() {
 
         AppLog.init(this)
 
-        AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.7.2")
+        AppLog.section(TAG, "魔灵召唤 · 自动更新 启动 v2.7.3")
 
         initAutoCheck()
 

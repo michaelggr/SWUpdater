@@ -316,6 +316,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCaptureUI() {
+        if (!::binding.isInitialized) return
         val running = CaptureService.isRunning
         binding.btnStartCapture.visibility = if (running) View.GONE else View.VISIBLE
         binding.btnStopCapture.visibility = if (running) View.VISIBLE else View.GONE
