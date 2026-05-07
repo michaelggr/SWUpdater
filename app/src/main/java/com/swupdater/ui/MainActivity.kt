@@ -949,6 +949,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshInstalledInfo()
-        updateCaptureUI()
+        if (::binding.isInitialized) {
+            updateCaptureUI()
+        }
     }
 }
