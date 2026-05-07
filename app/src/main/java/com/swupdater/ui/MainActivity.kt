@@ -101,11 +101,11 @@ class MainActivity : AppCompatActivity() {
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
         } catch (e: Exception) {
-            AppLog.e(TAG, "初始化布局失败", e)
-            // 如果布局加载失败，至少显示一个简单的界面
+            AppLog.e(TAG, "初始化布局失败: ${e.javaClass.simpleName}: ${e.message}", e)
+            android.util.Log.e(TAG, "布局初始化失败", e)
             try {
                 val textView = android.widget.TextView(this)
-                textView.text = "应用启动失败，请重新安装"
+                textView.text = "应用启动失败: ${e.javaClass.simpleName}\n${e.message}\n请截图并反馈"
                 textView.gravity = android.view.Gravity.CENTER
                 setContentView(textView)
             } catch (_: Exception) {}
