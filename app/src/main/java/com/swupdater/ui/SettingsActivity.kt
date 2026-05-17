@@ -1,4 +1,4 @@
-package com.swupdater.ui
+﻿package com.swupdater.ui
 
 import android.os.Bundle
 import android.widget.Toast
@@ -704,12 +704,12 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
          * 显示更新对话框，提供多个下载镜像
          */
         private fun showUpdateDialog(currentVersion: String, latestVersion: String, releaseUrl: String?) {
-            // 下载链接镜像列表
+            // 下载链接镜像列表 - 使用直接的 APK 下载地址
             val downloadMirrors = listOf(
-                "GitHub（原版）" to "https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/latest",
-                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/latest"
+                "GitHub 下载" to "https://github.com/michaelggr/SWUpdater/releases/download/v$latestVersion/app-release.apk",
+                "ghgo 加速" to "https://ghgo.xyz/https://github.com/michaelggr/SWUpdater/releases/download/v$latestVersion/app-release.apk",
+                "gh-proxy 加速" to "https://gh-proxy.com/https://github.com/michaelggr/SWUpdater/releases/download/v$latestVersion/app-release.apk",
+                "ghproxy 加速" to "https://mirror.ghproxy.com/https://github.com/michaelggr/SWUpdater/releases/download/v$latestVersion/app-release.apk"
             )
 
             val mirrorNames = downloadMirrors.map { it.first }.toTypedArray()
@@ -719,14 +719,13 @@ class SettingsActivity : androidx.appcompat.app.AppCompatActivity() {
                 .setMessage("当前版本: v$currentVersion\n最新版本: v$latestVersion\n\n请选择下载方式：")
                 .setItems(mirrorNames) { _, which ->
                     val url = downloadMirrors[which].second
-                    try {
-                        startActivity(android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse(url)
-                        ))
-                    } catch (e: Exception) {
-                        Toast.makeText(requireContext(), "无法打开链接", Toast.LENGTH_SHORT).show()
-                    }
+                    // 直接下载 APK，而不是打开页面
+                    com.swupdater.service.DownloadService.start(
+                        requireContext(),
+                        url,
+                        "SWUpdater v$latestVersion"
+                    )
+                    Toast.makeText(requireContext(), "开始下载: ${mirrorNames[which]}", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("稍后", null)
                 .show()
