@@ -119,7 +119,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (finalResult != null && finalResult.success && finalResult.versionName != null) {
                         val latestInfo = VersionInfo(
                             versionName = finalResult.versionName,
-                            downloadUrl = finalResult.downloadUrl ?: ""
+                            downloadUrl = finalResult.downloadUrl ?: "",
+                            downloadChannels = DownloadChannels.CHANNELS
                         )
                         _latestVersion.value = latestInfo
                         compareVersions(latestInfo)

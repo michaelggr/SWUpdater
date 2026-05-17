@@ -440,8 +440,10 @@
                         <com.google.android.material.imageview.ShapeableImageView
                             android:id="@+id/iv_wallpaper"
                             android:layout_width="match_parent"
-                            android:layout_height="160dp"
-                            android:scaleType="centerCrop"
+                            android:layout_height="wrap_content"
+                            android:maxHeight="200dp"
+                            android:scaleType="fitCenter"
+                            android:adjustViewBounds="true"
                             android:visibility="gone"
                             app:shapeAppearanceOverlay="@style/RoundedIconShape"
                             android:contentDescription="当前壁纸" />
